@@ -1,0 +1,31 @@
+:root {
+  --md-canvas: #f3f5f2;
+  --md-surface: #ffffff;
+  --md-ink: #171a1d;
+  --md-muted: #697078;
+  --md-line: #d9ddd8;
+  --md-nav: #202428;
+  --md-yellow: #f5c842;
+  --md-green: #2f9b68;
+  --md-red: #cf4a45;
+  --md-font: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --md-title-size: 24px;
+  --md-title-line: 32px;
+  --md-body-size: 14px;
+  --md-body-line: 22px;
+  --md-caption-size: 12px;
+  --md-caption-line: 18px;
+  --md-radius: 6px;
+  --md-control-height: 40px;
+  --md-sidebar-width: 216px;
+  --md-player-height: 88px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; background: var(--md-canvas); color: var(--md-ink); font-family: var(--md-font); letter-spacing: 0; }
+button, input, textarea, select { font: inherit; letter-spacing: 0; }
+:focus-visible { outline: 3px solid var(--md-yellow); outline-offset: 2px; }
+
+@media (max-width: 768px) {
+  :root { --md-title-size: 20px; --md-title-line: 28px; }
+}

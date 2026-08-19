@@ -1,0 +1,31 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: identity-service
+  datasource:
+    url: ${MUSIC_DREAMER_IDENTITY_JDBC_URL:jdbc:mysql://127.0.0.1:3306/music_dreamer_identity?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC}
+    username: ${MUSIC_DREAMER_IDENTITY_DB_USERNAME:music_dreamer_identity_app}
+    password: ${MUSIC_DREAMER_IDENTITY_DB_PASSWORD:}
+  data:
+    redis:
+      host: ${MUSIC_DREAMER_REDIS_HOST:127.0.0.1}
+      port: ${MUSIC_DREAMER_REDIS_PORT:6380}
+  flyway:
+    enabled: false
+    locations: classpath:db/migration/identity
+    baseline-on-migrate: true
+    baseline-version: 1
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${MUSIC_DREAMER_NACOS_SERVER:127.0.0.1:8848}
+
+music-dreamer:
+  identity:
+    activation-lifetime: PT30M
+    session-lifetime: PT1H
+    media-cookie-secure: false
+    redis-namespace: music-dreamer
+    bcrypt-strength: 12

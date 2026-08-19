@@ -1,0 +1,43 @@
+# Agent worktrees and browser evidence
+/.worktrees/
+/.playwright-mcp/
+/.superpowers/
+/music-dreamer-architecture.png
+
+# Local secrets
+.env
+.env.*
+!.env.example
+**/application-local.yml
+**/application-local.yaml
+
+# Project-managed runtimes and persistent data
+/infra/runtime/
+/runtime-data/
+/media-data/
+*.pid
+*.log
+
+# Java and Maven
+**/target/
+*.class
+
+# Node and frontend builds
+**/node_modules/
+**/dist/
+**/.vite/
+**/coverage/
+
+# Test artifacts
+/test-results/
+/playwright-report/
+/blob-report/
+
+# IDE and operating system files
+/.idea/
+/.vs/
+/.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,1 @@
+<template><router-view v-if="$route.meta.public"/><AdminShell v-else/></template><script>import AdminShell from './components/AdminShell.vue';export default{name:'App',components:{AdminShell}};</script>

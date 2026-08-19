@@ -1,0 +1,19 @@
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=lf
+
+*.ico -text
+*.jpg -text
+*.jpeg -text
+*.png -text
+*.webp -text
+*.gif -text
+*.mp3 -text
+*.wav -text
+*.zip -text
+*.eot -text
+*.ttf -text
+*.woff -text
+*.woff2 -text

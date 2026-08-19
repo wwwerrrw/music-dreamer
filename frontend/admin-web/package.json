@@ -1,0 +1,24 @@
+{
+  "name": "admin-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vue-cli-service serve --host 127.0.0.1 --port 5174",
+    "test": "node --test tests/*.mjs",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "@music-dreamer/shared": "*",
+    "axios": "1.19.0",
+    "core-js": "3.39.0",
+    "element-ui": "2.15.14",
+    "lucide-vue": "0.517.0",
+    "vue": "2.7.16",
+    "vue-router": "3.6.5",
+    "vuex": "3.6.2"
+  },
+  "devDependencies": {
+    "@vue/cli-service": "5.0.8",
+    "babel-loader": "9.2.1"
+  }
+}

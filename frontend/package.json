@@ -1,0 +1,27 @@
+{
+  "name": "music-dreamer-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "music-web",
+    "admin-web"
+  ],
+  "scripts": {
+    "test:shared": "npm --workspace @music-dreamer/shared test",
+    "test:music": "npm --workspace music-web test",
+    "test:admin": "npm --workspace admin-web test",
+    "test": "npm run test:shared && npm run test:music && npm run test:admin",
+    "build": "npm run build:music && npm run build:admin",
+    "build:music": "npm --workspace music-web run build",
+    "build:admin": "npm --workspace admin-web run build"
+  },
+  "engines": {
+    "node": "24.18.0",
+    "npm": "11.16.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}
