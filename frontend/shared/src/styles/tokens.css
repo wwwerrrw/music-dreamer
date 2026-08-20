@@ -1,31 +1,102 @@
 :root {
-  --md-canvas: #f3f5f2;
+  color-scheme: light;
+  --md-canvas: #fff8f7;
   --md-surface: #ffffff;
-  --md-ink: #171a1d;
-  --md-muted: #697078;
-  --md-line: #d9ddd8;
-  --md-nav: #202428;
-  --md-yellow: #f5c842;
-  --md-green: #2f9b68;
-  --md-red: #cf4a45;
-  --md-font: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
-  --md-title-size: 24px;
-  --md-title-line: 32px;
-  --md-body-size: 14px;
-  --md-body-line: 22px;
+  --md-surface-soft: #fff0ef;
+  --md-surface-strong: #ffe1e0;
+  --md-ink: #1a1a1a;
+  --md-muted: #6c757d;
+  --md-line: #ecd8d6;
+  --md-line-strong: #d9b8b5;
+  --md-primary: #e63946;
+  --md-primary-strong: #b7102a;
+  --md-primary-soft: #ffdad8;
+  --md-secondary: #1d3557;
+  --md-secondary-soft: #d5e3ff;
+  --md-success: #087f72;
+  --md-success-soft: #d8f4ef;
+  --md-warning: #a76800;
+  --md-warning-soft: #ffebc2;
+  --md-danger: #ba1a1a;
+  --md-danger-soft: #ffdad6;
+
+  /* Compatibility aliases for views migrated in later tasks. */
+  --md-nav: #ffffff;
+  --md-yellow: var(--md-primary);
+  --md-green: var(--md-success);
+  --md-red: var(--md-danger);
+
+  --md-font-display: "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --md-font-body: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --md-font-mono: "JetBrains Mono", Consolas, monospace;
+  --md-font: var(--md-font-body);
+  --md-title-size: 32px;
+  --md-title-line: 40px;
+  --md-body-size: 15px;
+  --md-body-line: 24px;
   --md-caption-size: 12px;
   --md-caption-line: 18px;
-  --md-radius: 6px;
-  --md-control-height: 40px;
-  --md-sidebar-width: 216px;
-  --md-player-height: 88px;
+
+  --md-radius-sm: 8px;
+  --md-radius: 12px;
+  --md-radius-lg: 20px;
+  --md-radius-xl: 28px;
+  --md-radius-round: 999px;
+  --md-shadow-sm: 0 8px 24px rgba(77, 31, 34, 0.08);
+  --md-shadow-lg: 0 24px 60px rgba(77, 31, 34, 0.14);
+  --md-control-height: 46px;
+  --md-sidebar-width: 244px;
+  --md-player-height: 92px;
+  --md-mobile-player-height: 64px;
+  --md-mobile-nav-height: 70px;
+  --md-content-max: 1240px;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; background: var(--md-canvas); color: var(--md-ink); font-family: var(--md-font); letter-spacing: 0; }
-button, input, textarea, select { font: inherit; letter-spacing: 0; }
-:focus-visible { outline: 3px solid var(--md-yellow); outline-offset: 2px; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--md-canvas);
+  color: var(--md-ink);
+  font-family: var(--md-font-body);
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  letter-spacing: 0;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(230, 57, 70, 0.34);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--md-primary-soft);
+  color: var(--md-primary-strong);
+}
 
 @media (max-width: 768px) {
-  :root { --md-title-size: 20px; --md-title-line: 28px; }
+  :root {
+    --md-title-size: 26px;
+    --md-title-line: 34px;
+  }
 }
