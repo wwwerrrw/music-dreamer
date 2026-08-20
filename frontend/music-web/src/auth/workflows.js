@@ -9,6 +9,10 @@ export async function login({ api, storage, credentials }) {
   return { session, redirect: defaultRouteFor(session.role) };
 }
 
+export function registrationPasswordError(password, confirmPassword) {
+  return password === confirmPassword ? '' : '两次输入的密码不一致。';
+}
+
 export async function registerAndActivate({ api, registration }) {
   const registered = await api.post(API_PATHS.identity.register, registration);
   const inbox = await api.get(API_PATHS.identity.developmentInbox);

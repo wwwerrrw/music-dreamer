@@ -14,6 +14,7 @@ import {
 } from '../src/router/access.js';
 import { selectActivationMessage } from '../src/auth/activation.js';
 import { login, registerAndActivate } from '../src/auth/workflows.js';
+import * as authWorkflows from '../src/auth/workflows.js';
 import { routeRecords } from '../src/router/routes.js';
 import { problemMessage } from '../src/ui/problem-message.js';
 
@@ -128,6 +129,12 @@ test('registration activates only the exact email message without returning the 
     path: '/api/identity/activations',
     body: { token: 'activation-only' }
   });
+});
+
+test('registration password confirmation reports a stable Chinese validation message', () => {
+  assert.equal(typeof authWorkflows.registrationPasswordError, 'function');
+  assert.equal(authWorkflows.registrationPasswordError('secret-123', 'different'), '两次输入的密码不一致。');
+  assert.equal(authWorkflows.registrationPasswordError('secret-123', 'secret-123'), '');
 });
 
 test('route records cover all approved public, library, artist, and detail routes', () => {

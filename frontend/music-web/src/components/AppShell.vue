@@ -1,7 +1,10 @@
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :class="{ 'has-player': Boolean(player.track) }">
     <aside class="desktop-sidebar" aria-label="主导航">
-      <router-link class="brand" to="/discover">MUSIC <span>DREAMER</span></router-link>
+      <router-link class="brand" to="/discover" aria-label="悦享音乐发现页">
+        <span class="brand-mark"><Music2 :size="22" :stroke-width="2.4" aria-hidden="true" /></span>
+        <span class="brand-copy">悦享音乐</span>
+      </router-link>
       <nav class="sidebar-links">
         <router-link v-for="item in navigation" :key="item.path" :to="item.path" class="nav-link">
           <component :is="iconFor(item.icon)" :size="20" :stroke-width="2" aria-hidden="true" />
@@ -33,7 +36,7 @@
 
 <script>
 import {
-  Compass, Heart, History, ListMusic, LogOut, Mail, Search, Upload, UserRound
+  Compass, Heart, History, ListMusic, LogOut, Mail, Music2, Search, Upload, UserRound
 } from 'lucide-vue';
 import { navigationFor } from '../router/access.js';
 import MiniPlayer from './MiniPlayer.vue';
@@ -42,7 +45,7 @@ const icons = { compass: Compass, heart: Heart, history: History, 'list-music': 
 
 export default {
   name: 'AppShell',
-  components: { LogOut, MiniPlayer, UserRound },
+  components: { LogOut, MiniPlayer, Music2, UserRound },
   computed: {
     session() { return this.$store.state.auth.session; },
     navigation() { return navigationFor(this.session?.role); },
