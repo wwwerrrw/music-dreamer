@@ -17,6 +17,13 @@ const search = source('views/SearchView.vue');
 const track = source('views/TrackView.vue');
 const artist = source('views/ArtistView.vue');
 const contentCss = source('styles/content.css');
+const favorites = source('views/FavoritesView.vue');
+const history = source('views/HistoryView.vue');
+const playlists = source('views/PlaylistsView.vue');
+const playlist = source('views/PlaylistView.vue');
+const messages = source('views/MessagesView.vue');
+const artistProfile = source('views/ArtistProfileView.vue');
+const artistStudio = source('views/ArtistStudioView.vue');
 
 test('music shell uses the approved brand and responsive chrome', () => {
   assert.match(appShell, /悦享音乐/);
@@ -56,4 +63,23 @@ test('catalog views expose the approved Stitch landmarks without personalization
   assert.match(trackRow, /track-cover/);
   assert.match(contentCss, /\.discovery-hero/);
   assert.match(contentCss, /@media\s*\(max-width:\s*768px\)/);
+});
+
+test('library, message, and studio views keep the approved workflow landmarks', () => {
+  const libraryViews = [favorites, history, playlists, playlist].join('\n');
+  for (const label of ['收藏歌曲', '最近播放', '我的歌单']) assert.match(libraryViews, new RegExp(label));
+  assert.match(playlists, /new-playlist-card/);
+  assert.match(playlist, /playlist-track-row/);
+
+  assert.match(messages, /消息中心/);
+  assert.match(messages, /message-center-layout/);
+  assert.match(messages, /message-detail-panel/);
+  assert.match(messages, /全部标记已读/);
+
+  for (const label of ['媒体文件', '基本信息', '发布设置', '保存草稿', '提交审核']) {
+    assert.match(artistStudio, new RegExp(label));
+  }
+  assert.match(artistProfile, /profile-preview/);
+  assert.match(contentCss, /\.library-tabs/);
+  assert.match(contentCss, /\.studio-layout/);
 });
