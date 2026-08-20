@@ -239,6 +239,7 @@ img { display: block; }
 .app-shell .player-track img { border-radius: 12px; }
 .app-shell .player-track small { color: var(--md-muted); }
 .app-shell .player-icon { color: var(--md-secondary); }
+.app-shell .player-icon:disabled { cursor: not-allowed; opacity: 0.32; }
 .app-shell .player-play { background: var(--md-primary); color: #fff; box-shadow: 0 8px 18px rgba(230, 57, 70, 0.24); }
 .app-shell .player-progress { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; align-items: center; gap: 8px; }
 .app-shell .player-progress time { color: var(--md-muted); font-family: var(--md-font-mono); font-size: 11px; text-align: center; }

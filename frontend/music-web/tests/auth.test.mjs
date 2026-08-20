@@ -9,6 +9,7 @@ import {
 } from '../src/auth/session.js';
 import {
   defaultRouteFor,
+  mobileNavigation,
   navigationFor,
   resolveRouteAccess
 } from '../src/router/access.js';
@@ -60,6 +61,12 @@ test('login destinations and navigation reflect the server-issued role', () => {
   assert.equal(defaultRouteFor('SINGER'), '/artist/studio');
   assert.equal(navigationFor('USER').some((item) => item.path === '/artist/studio'), false);
   assert.equal(navigationFor('SINGER').some((item) => item.path === '/artist/studio'), true);
+});
+
+test('mobile navigation keeps messages directly reachable without duplicating library tabs', () => {
+  assert.deepEqual(mobileNavigation().map((item) => item.path), [
+    '/discover', '/search', '/messages', '/library/favorites'
+  ]);
 });
 
 test('401 clears the session while 403 preserves it', () => {

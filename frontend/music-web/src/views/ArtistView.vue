@@ -13,7 +13,7 @@
             <span>认证音乐人</span>
             <h1>{{ artist.stageName }}</h1>
             <p>{{ tracks.length }} 首已发布作品</p>
-            <button v-if="tracks.length" class="primary-button" type="button" @click="play(tracks[0])"><Play :size="18" fill="currentColor" aria-hidden="true" /><span>播放全部</span></button>
+            <button v-if="tracks.length" class="primary-button" type="button" @click="playAll"><Play :size="18" fill="currentColor" aria-hidden="true" /><span>播放全部</span></button>
           </div>
         </div>
       </header>
@@ -64,7 +64,8 @@ export default {
     }
   },
   methods: {
-    play(track) { this.$store.dispatch('player/playTrack', track); }
+    playAll() { this.$store.dispatch('player/playQueue', { tracks: this.tracks, startTrackId: this.tracks[0].id }); },
+    play(track) { this.$store.dispatch('player/playQueue', { tracks: this.tracks, startTrackId: track.id }); }
   }
 };
 </script>

@@ -23,7 +23,13 @@ export function createArtistStudioApi(api) {
       };
       return (await api.post(API_PATHS.catalog.drafts, payload)).data;
     },
-    async updateDraft(trackId, payload) { return (await api.put(API_PATHS.catalog.updateDraft(trackId), payload)).data; },
+    async updateDraft(trackId, payload) {
+      const { audio, cover, lyrics, ...next } = payload;
+      if (audio) next.mediaObjectId = await upload(audio, 'AUDIO');
+      if (cover) next.coverMediaObjectId = await upload(cover, 'IMAGE');
+      if (lyrics) next.lyricsMediaObjectId = await upload(lyrics, 'LYRICS');
+      return (await api.put(API_PATHS.catalog.updateDraft(trackId), next)).data;
+    },
     async submit(trackId) { return (await api.post(API_PATHS.catalog.submit(trackId))).data; }
   };
 }

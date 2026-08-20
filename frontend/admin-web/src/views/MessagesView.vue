@@ -32,7 +32,7 @@
 <script>
 import { Bell, Megaphone, Send, ShieldCheck, Smartphone, Users } from 'lucide-vue';
 import { adminApi } from '../api/index.js';
-import { adminProblemMessage } from '../ui/admin-model.js';
+import { adminProblemMessage, publishConfirmedMessage } from '../ui/admin-model.js';
 
 export default {
   name: 'MessagesView',
@@ -51,11 +51,20 @@ export default {
     publish() {
       this.$refs.form.validate(async (valid) => {
         if (!valid) return;
-        this.submitting = true;
         this.error = '';
         this.success = '';
         try {
-          const message = await adminApi.publishMessage({ ...this.form });
+          const message = await publishConfirmedMessage({
+            confirm: () => this.$confirm('发布后将立即进入所有用户的消息中心，确认继续？', '确认发布消息', {
+              confirmButtonText: '确认发布', cancelButtonText: '取消', type: 'warning'
+            }),
+            publish: async (payload) => {
+              this.submitting = true;
+              return adminApi.publishMessage(payload);
+            },
+            payload: { ...this.form }
+          });
+          if (!message) return;
           this.success = `消息 #${message.id} 已发布。`;
           this.form = { subject: '', body: '' };
         } catch (problem) {

@@ -40,6 +40,7 @@ export default {
   methods: {
     async load() {
       this.state = 'loading';
+      this.error = '';
       try {
         this.playlist = await library.playlist(Number(this.$route.params.playlistId));
         this.trackDetails = await Promise.all(this.playlist.tracks.map(async (item) => mapTrackSummary((await api.get(API_PATHS.catalog.track(item.trackId))).data)));
@@ -50,6 +51,7 @@ export default {
       }
     },
     async add() {
+      this.error = '';
       try {
         await library.addTrack(this.playlist.playlist.id, { trackId: Number(this.trackId), sortOrder: this.playlist.tracks.length });
         await this.load();
@@ -59,6 +61,7 @@ export default {
       }
     },
     async remove(trackId) {
+      this.error = '';
       try {
         await library.removeTrack(this.playlist.playlist.id, trackId);
         await this.load();

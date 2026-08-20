@@ -62,6 +62,38 @@ test('draft update and submit use the current catalog contract', async () => {
   ]);
 });
 
+test('draft update uploads newly selected media before persisting replacement ids', async () => {
+  const calls = [];
+  let nextId = 80;
+  const api = {
+    post: async (path, body, options) => {
+      calls.push({ method: 'POST', path, body, options });
+      return { data: { id: ++nextId } };
+    },
+    put: async (path, body) => {
+      calls.push({ method: 'PUT', path, body });
+      return { data: { id: 8, ...body, status: 'DRAFT' } };
+    }
+  };
+  const studio = createArtistStudioApi(api);
+  const result = await studio.updateDraft(8, {
+    title: '替换后的版本', durationMs: 215000,
+    mediaObjectId: 71, coverMediaObjectId: 72, lyricsMediaObjectId: 73,
+    audio: new Blob(['new-audio']), cover: new Blob(['new-cover']), lyrics: new Blob(['new-lyrics'])
+  });
+
+  assert.deepEqual(calls.slice(0, 3).map((call) => [call.path, call.options?.params?.mediaType]), [
+    ['/api/media/objects', 'AUDIO'],
+    ['/api/media/objects', 'IMAGE'],
+    ['/api/media/objects', 'LYRICS']
+  ]);
+  assert.deepEqual(calls.at(-1), {
+    method: 'PUT', path: '/api/catalog/tracks/8',
+    body: { title: '替换后的版本', durationMs: 215000, mediaObjectId: 81, coverMediaObjectId: 82, lyricsMediaObjectId: 83 }
+  });
+  assert.equal(result.mediaObjectId, 81);
+});
+
 test('upload errors preserve entered studio values and status labels are accurate', () => {
   const form = { title: '未完成的歌', durationMs: 180000, audio: { name: 'demo.mp3' } };
   assert.deepEqual(preserveStudioForm(form, { status: 503 }), { ...form, errorCode: 'RETRY' });

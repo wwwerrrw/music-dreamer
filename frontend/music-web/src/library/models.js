@@ -10,3 +10,11 @@ export function messageState(value) { return viewState(value); }
 export function markMessageRead(messages, messageId, readAt) {
   return messages.map((message) => message.id === messageId ? { ...message, readAt } : message);
 }
+
+export function openMessageDetail(messageId) {
+  return { selectedId: messageId, detailOpen: true };
+}
+
+export function closeMessageDetail(state) {
+  return { selectedId: state.selectedId, detailOpen: false };
+}

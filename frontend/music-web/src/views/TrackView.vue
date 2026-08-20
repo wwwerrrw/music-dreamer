@@ -12,8 +12,9 @@
           <p class="track-meta">{{ formatDuration(track.durationMs) }} · 播放 {{ track.playCount || 0 }} 次</p>
           <div class="detail-actions">
             <button class="primary-button action-button" type="button" @click="togglePlayback"><Pause v-if="isCurrentTrack && isPlaying" :size="18" fill="currentColor" aria-hidden="true" /><Play v-else :size="18" fill="currentColor" aria-hidden="true" /><span>{{ isCurrentTrack && isPlaying ? '暂停' : '播放' }}</span></button>
-            <button class="secondary-button favorite-button" type="button" @click="toggleFavorite"><Heart :size="18" :fill="favorite ? 'currentColor' : 'none'" aria-hidden="true" /><span>{{ favorite ? '取消收藏' : '收藏' }}</span></button>
+            <button class="secondary-button favorite-button" type="button" :aria-label="favorite ? '取消收藏' : '收藏'" :title="favorite ? '取消收藏' : '收藏'" @click="toggleFavorite"><Heart :size="18" :fill="favorite ? 'currentColor' : 'none'" aria-hidden="true" /><span>{{ favorite ? '取消收藏' : '收藏' }}</span></button>
           </div>
+          <p v-if="feedback.favorite" class="action-feedback" role="alert">{{ feedback.favorite }}</p>
 
           <div class="mobile-player-controls">
             <input type="range" min="0" :max="progressMax" :value="progressValue" :disabled="!isCurrentTrack" aria-label="播放进度" @input="seek">
@@ -24,6 +25,7 @@
 
         <section class="lyrics-section" aria-label="歌词">
           <div class="section-heading"><h2>歌词</h2><button v-if="hasLyrics && lyricsLoaded" type="button" @click="loadLyrics">刷新</button></div>
+          <p v-if="feedback.lyrics" class="action-feedback" role="alert">{{ feedback.lyrics }}</p>
           <p v-if="!hasLyrics" class="lyrics-empty">暂无歌词</p>
           <button v-else-if="!lyricsLoaded" class="lyrics-load" type="button" @click="loadLyrics"><FileText :size="18" aria-hidden="true" /><span>加载歌词</span></button>
           <p v-else-if="!lyrics.length" class="lyrics-empty">暂无歌词</p>
@@ -50,12 +52,13 @@ import TrackRow from '../components/TrackRow.vue';
 import { lyricsAvailable } from '../player/media.js';
 import { lyricAt, parseLrc } from '../player/lrc.js';
 import { problemMessage } from '../ui/problem-message.js';
+import { clearActionFeedback, createActionFeedback, failActionFeedback } from '../ui/action-feedback.js';
 import { library } from '../library/client.js';
 
 export default {
   name: 'TrackView',
   components: { ChevronDown, FileText, Heart, Pause, Play, StateMessage, TrackRow },
-  data: () => ({ state: 'loading', message: '正在加载歌曲…', track: null, favorite: false, lyrics: [], lyricsLoaded: false, suggestions: [] }),
+  data: () => ({ state: 'loading', message: '正在加载歌曲…', track: null, favorite: false, lyrics: [], lyricsLoaded: false, suggestions: [], feedback: createActionFeedback() }),
   computed: {
     hasLyrics() { return lyricsAvailable(this.track); },
     activeLyric() { return lyricAt(this.lyrics, this.$store.state.player.currentTime * 1000); },
@@ -79,7 +82,7 @@ export default {
   methods: {
     coverFor(track) { if (track.coverMediaObjectId) return mediaObjectUrl(track.coverMediaObjectId); return track.id % 2 ? '/assets/studio-piano.jpg' : '/assets/studio-computer.jpg'; },
     formatDuration(ms) { const total = Math.round((ms || 0) / 1000); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; },
-    playTrack(track) { this.$store.dispatch('player/playTrack', track); },
+    playTrack(track) { this.$store.dispatch('player/playQueue', { tracks: [this.track, ...this.suggestions], startTrackId: track.id }); },
     togglePlayback() { if (this.isCurrentTrack) this.$store.dispatch('player/toggle'); else this.playTrack(this.track); },
     seek(event) { if (this.isCurrentTrack) this.$store.dispatch('player/seek', Number(event.target.value)); },
     async loadSuggestions() {
@@ -91,20 +94,22 @@ export default {
       }
     },
     async toggleFavorite() {
+      this.feedback = clearActionFeedback(this.feedback, 'favorite');
       try {
         if (this.favorite) await library.removeFavorite(this.track.id); else await library.addFavorite(this.track.id);
         this.favorite = !this.favorite;
       } catch (problem) {
-        this.message = problemMessage(problem);
+        this.feedback = failActionFeedback(this.feedback, 'favorite', problemMessage(problem));
       }
     },
     async loadLyrics() {
+      this.feedback = clearActionFeedback(this.feedback, 'lyrics');
       try {
         const result = await api.get(mediaObjectUrl(this.track.lyricsMediaObjectId), { mediaRequest: true, responseType: 'text' });
         this.lyrics = parseLrc(result.data);
         this.lyricsLoaded = true;
       } catch (problem) {
-        this.message = problemMessage(problem);
+        this.feedback = failActionFeedback(this.feedback, 'lyrics', problemMessage(problem));
       }
     }
   }

@@ -6,9 +6,9 @@
         <section class="studio-section">
           <div class="form-section-heading"><span>01</span><div><h2>媒体文件</h2><p>上传音频、封面与可选歌词。</p></div></div>
           <div class="studio-upload-grid">
-            <label class="file-dropzone primary-dropzone"><UploadCloud :size="28" aria-hidden="true" /><strong>音频文件</strong><span>{{ form.audio ? form.audio.name : '选择音频文件' }}</span><input ref="audio" type="file" accept="audio/*" :required="!draft" @change="pick('audio', $event)"><small>必填，由 Media 服务校验内容。</small></label>
-            <label class="file-dropzone"><Image :size="24" aria-hidden="true" /><strong>封面图片</strong><span>{{ form.cover ? form.cover.name : '选择图片' }}</span><input type="file" accept="image/*" @change="pick('cover', $event)"><small>可选。</small></label>
-            <label class="file-dropzone"><FileText :size="24" aria-hidden="true" /><strong>歌词文件</strong><span>{{ form.lyrics ? form.lyrics.name : '选择 LRC' }}</span><input type="file" accept=".lrc,text/plain" @change="pick('lyrics', $event)"><small>可选，支持 LRC。</small></label>
+            <label class="file-dropzone primary-dropzone"><UploadCloud :size="28" aria-hidden="true" /><strong>音频文件</strong><span>{{ form.audio ? form.audio.name : draft ? '沿用现有音频，可重新选择' : '选择音频文件' }}</span><input ref="audio" type="file" accept="audio/*" :required="!draft" @change="pick('audio', $event)"><small>必填，由 Media 服务校验内容。</small></label>
+            <label class="file-dropzone"><Image :size="24" aria-hidden="true" /><strong>封面图片</strong><span>{{ form.cover ? form.cover.name : draft ? '沿用现有封面，可重新选择' : '选择图片' }}</span><input ref="cover" type="file" accept="image/*" @change="pick('cover', $event)"><small>可选。</small></label>
+            <label class="file-dropzone"><FileText :size="24" aria-hidden="true" /><strong>歌词文件</strong><span>{{ form.lyrics ? form.lyrics.name : draft ? '沿用现有歌词，可重新选择' : '选择 LRC' }}</span><input ref="lyrics" type="file" accept=".lrc,text/plain" @change="pick('lyrics', $event)"><small>可选，支持 LRC。</small></label>
           </div>
         </section>
 
@@ -55,8 +55,17 @@ export default {
         durationMs: Math.round(Number(this.form.durationSeconds) * 1000),
         mediaObjectId: this.draft.mediaObjectId,
         coverMediaObjectId: this.draft.coverMediaObjectId ?? null,
-        lyricsMediaObjectId: this.draft.lyricsMediaObjectId ?? null
+        lyricsMediaObjectId: this.draft.lyricsMediaObjectId ?? null,
+        audio: this.form.audio,
+        cover: this.form.cover,
+        lyrics: this.form.lyrics
       };
+    },
+    clearSelectedFiles() {
+      for (const field of ['audio', 'cover', 'lyrics']) {
+        this.form[field] = null;
+        if (this.$refs[field]) this.$refs[field].value = '';
+      }
     },
     async saveDraft() {
       this.submitting = true;
@@ -64,6 +73,7 @@ export default {
       try {
         if (this.draft) this.draft = await artistStudio.updateDraft(this.draft.id, this.payload());
         else this.draft = await artistStudio.createDraft({ title: this.form.title, durationMs: Math.round(Number(this.form.durationSeconds) * 1000), audio: this.form.audio, cover: this.form.cover, lyrics: this.form.lyrics });
+        this.clearSelectedFiles();
         this.success = true;
         this.message = '草稿已保存。';
       } catch (problem) {

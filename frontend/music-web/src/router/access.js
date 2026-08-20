@@ -7,6 +7,13 @@ const BASE_NAVIGATION = Object.freeze([
   { label: '消息', path: '/messages', icon: 'mail' }
 ]);
 
+const MOBILE_NAVIGATION = Object.freeze([
+  { label: '发现', path: '/discover', icon: 'compass' },
+  { label: '搜索', path: '/search', icon: 'search' },
+  { label: '消息', path: '/messages', icon: 'mail' },
+  { label: '我的', path: '/library/favorites', icon: 'user' }
+]);
+
 export function defaultRouteFor(role) {
   return role === 'SINGER' ? '/artist/studio' : '/discover';
 }
@@ -17,6 +24,10 @@ export function navigationFor(role) {
     items.push({ label: '歌手工作台', path: '/artist/studio', icon: 'upload' });
   }
   return items;
+}
+
+export function mobileNavigation() {
+  return MOBILE_NAVIGATION.map((item) => ({ ...item }));
 }
 
 export function resolveRouteAccess(route, session) {

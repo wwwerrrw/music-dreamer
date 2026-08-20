@@ -6,9 +6,9 @@
     </div>
     <div class="player-center">
       <div class="player-controls">
-        <button class="player-icon" type="button" aria-label="上一首" title="上一首" @click="$emit('previous')"><SkipBack :size="18" /></button>
+        <button class="player-icon" type="button" aria-label="上一首" title="上一首" :disabled="!hasPrevious" @click="$emit('previous')"><SkipBack :size="18" /></button>
         <button class="player-play" type="button" :aria-label="playing ? '暂停' : '播放'" :title="playing ? '暂停' : '播放'" @click="$emit('toggle')"><Pause v-if="playing" :size="20" /><Play v-else :size="20" /></button>
-        <button class="player-icon" type="button" aria-label="下一首" title="下一首" @click="$emit('next')"><SkipForward :size="18" /></button>
+        <button class="player-icon" type="button" aria-label="下一首" title="下一首" :disabled="!hasNext" @click="$emit('next')"><SkipForward :size="18" /></button>
       </div>
       <div class="player-progress">
         <time>{{ formatTime(currentTime) }}</time>
@@ -31,7 +31,8 @@ export default {
   components: { Pause, Play, SkipBack, SkipForward, Volume2 },
   props: {
     track: { type: Object, default: null }, playing: Boolean, currentTime: { type: Number, default: 0 },
-    duration: { type: Number, default: 0 }, volume: { type: Number, default: 1 }
+    duration: { type: Number, default: 0 }, volume: { type: Number, default: 1 },
+    hasPrevious: Boolean, hasNext: Boolean
   },
   methods: {
     coverFor(track) { return track.coverMediaObjectId ? `/api/media/objects/${track.coverMediaObjectId}` : '/assets/studio-piano.jpg'; },
