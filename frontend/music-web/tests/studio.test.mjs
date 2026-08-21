@@ -62,6 +62,27 @@ test('draft update and submit use the current catalog contract', async () => {
   ]);
 });
 
+test('draft update rejects unsupported audio replacement before uploading media', async () => {
+  const calls = [];
+  const api = {
+    post: async (path, body, options) => {
+      calls.push({ method: 'POST', path, body, options });
+      return { data: { id: 81 } };
+    },
+    put: async (path, body) => {
+      calls.push({ method: 'PUT', path, body });
+      return { data: { id: 8, ...body, status: 'DRAFT' } };
+    }
+  };
+  const studio = createArtistStudioApi(api);
+  await assert.rejects(studio.updateDraft(8, {
+    title: '替换后的版本', durationMs: 215000,
+    mediaObjectId: 71, coverMediaObjectId: 72, lyricsMediaObjectId: 73,
+    audio: new Blob(['new-audio'])
+  }), /draft audio replacement is not supported/);
+  assert.deepEqual(calls, []);
+});
+
 test('upload errors preserve entered studio values and status labels are accurate', () => {
   const form = { title: '未完成的歌', durationMs: 180000, audio: { name: 'demo.mp3' } };
   assert.deepEqual(preserveStudioForm(form, { status: 503 }), { ...form, errorCode: 'RETRY' });

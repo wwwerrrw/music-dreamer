@@ -6,6 +6,7 @@ import { clearSession, loadSession } from '../auth/session.js';
 import { login as loginWorkflow } from '../auth/workflows.js';
 import { createPlayerController } from '../player/controller.js';
 import { shouldPersistHistory } from '../player/history-policy.js';
+import { createPlaybackQueue, movePlaybackQueue } from '../player/queue.js';
 
 Vue.use(Vuex);
 
@@ -34,10 +35,12 @@ export default new Vuex.Store({
     },
     player: {
       namespaced: true,
-      state: () => ({ controller: null, track: null, playing: false, currentTime: 0, duration: 0, volume: 1, lastWriteAt: 0 }),
+      state: () => ({ controller: null, track: null, queue: [], queueIndex: -1, playing: false, currentTime: 0, duration: 0, volume: 1, lastWriteAt: 0 }),
       mutations: {
         initialize(state, audio) { state.controller = createPlayerController({ audio }); state.volume = audio.volume; },
         setTrack(state, track) { state.track = track; state.currentTime = 0; state.duration = 0; },
+        setQueue(state, queue) { state.queue = queue.tracks; state.queueIndex = queue.index; },
+        setQueueIndex(state, index) { state.queueIndex = index; },
         setPlaying(state, value) { state.playing = value; },
         setTime(state, value) { state.currentTime = value; },
         setDuration(state, value) { state.duration = value; },
@@ -47,10 +50,28 @@ export default new Vuex.Store({
       actions: {
         async playTrack({ state, commit, dispatch }, track) {
           if (state.track && state.track.id !== track.id) await dispatch('persistHistory', 'track-change');
+          const queueIndex = state.queue.findIndex((item) => item.id === track.id);
+          if (queueIndex < 0) commit('setQueue', createPlaybackQueue([track], track.id));
+          else commit('setQueueIndex', queueIndex);
           state.controller.load(track);
           commit('setTrack', track);
           await state.controller.toggle();
         },
+        async playQueue({ commit, dispatch }, { tracks, startTrackId }) {
+          const queue = createPlaybackQueue(tracks, startTrackId);
+          if (queue.index < 0) return false;
+          commit('setQueue', queue);
+          await dispatch('playTrack', queue.tracks[queue.index]);
+          return true;
+        },
+        async moveQueue({ state, dispatch }, direction) {
+          const next = movePlaybackQueue({ tracks: state.queue, index: state.queueIndex }, direction);
+          if (!next) return false;
+          await dispatch('playTrack', next.track);
+          return true;
+        },
+        previous({ dispatch }) { return dispatch('moveQueue', -1); },
+        next({ dispatch }) { return dispatch('moveQueue', 1); },
         async toggle({ state }) { if (state.track) await state.controller.toggle(); },
         seek({ state, commit, dispatch }, seconds) { commit('setTime', state.controller.seek(seconds)); dispatch('persistHistory', 'seeked'); },
         setVolume({ state, commit }, value) { commit('setVolume', state.controller.setVolume(value)); },

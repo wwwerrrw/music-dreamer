@@ -9,11 +9,13 @@ import {
 } from '../src/auth/session.js';
 import {
   defaultRouteFor,
+  mobileNavigation,
   navigationFor,
   resolveRouteAccess
 } from '../src/router/access.js';
 import { selectActivationMessage } from '../src/auth/activation.js';
 import { login, registerAndActivate } from '../src/auth/workflows.js';
+import * as authWorkflows from '../src/auth/workflows.js';
 import { routeRecords } from '../src/router/routes.js';
 import { problemMessage } from '../src/ui/problem-message.js';
 
@@ -59,6 +61,12 @@ test('login destinations and navigation reflect the server-issued role', () => {
   assert.equal(defaultRouteFor('SINGER'), '/artist/studio');
   assert.equal(navigationFor('USER').some((item) => item.path === '/artist/studio'), false);
   assert.equal(navigationFor('SINGER').some((item) => item.path === '/artist/studio'), true);
+});
+
+test('mobile navigation keeps messages directly reachable without duplicating library tabs', () => {
+  assert.deepEqual(mobileNavigation().map((item) => item.path), [
+    '/discover', '/search', '/messages', '/library/favorites'
+  ]);
 });
 
 test('401 clears the session while 403 preserves it', () => {
@@ -128,6 +136,12 @@ test('registration activates only the exact email message without returning the 
     path: '/api/identity/activations',
     body: { token: 'activation-only' }
   });
+});
+
+test('registration password confirmation reports a stable Chinese validation message', () => {
+  assert.equal(typeof authWorkflows.registrationPasswordError, 'function');
+  assert.equal(authWorkflows.registrationPasswordError('secret-123', 'different'), '两次输入的密码不一致。');
+  assert.equal(authWorkflows.registrationPasswordError('secret-123', 'secret-123'), '');
 });
 
 test('route records cover all approved public, library, artist, and detail routes', () => {

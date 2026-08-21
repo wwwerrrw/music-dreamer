@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createLibraryApi } from '../src/library/api.js';
-import { markMessageRead, messageState, playlistState } from '../src/library/models.js';
+import { closeMessageDetail, markMessageRead, messageState, openMessageDetail, playlistState } from '../src/library/models.js';
 
 test('favorite action is UI-idempotent and uses the interaction favorite endpoint', async () => {
   const calls = [];
@@ -59,4 +59,9 @@ test('marking a message read updates only its read state', () => {
     { id: 1, subject: 'A', readAt: null },
     { id: 2, subject: 'B', readAt: '2026-08-19T08:00:00Z' }
   ]);
+});
+
+test('mobile message selection opens a readable detail state and closing preserves selection', () => {
+  assert.deepEqual(openMessageDetail(9), { selectedId: 9, detailOpen: true });
+  assert.deepEqual(closeMessageDetail({ selectedId: 9, detailOpen: true }), { selectedId: 9, detailOpen: false });
 });

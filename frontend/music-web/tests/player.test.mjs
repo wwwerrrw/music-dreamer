@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { loadDiscovery } from '../src/catalog/discovery.js';
 import { parseLrc, lyricAt } from '../src/player/lrc.js';
 import { createPlayerController } from '../src/player/controller.js';
+import { createPlaybackQueue, movePlaybackQueue } from '../src/player/queue.js';
 import { shouldPersistHistory } from '../src/player/history-policy.js';
 import { lyricsAvailable, trackMediaSource } from '../src/player/media.js';
 
@@ -65,4 +66,15 @@ test('history writes on lifecycle events and throttles passive progress to 15 se
   }
   assert.equal(shouldPersistHistory({ event: 'timeupdate', now: 14999, lastWriteAt: 0 }), false);
   assert.equal(shouldPersistHistory({ event: 'timeupdate', now: 15000, lastWriteAt: 0 }), true);
+});
+
+test('playback queue moves through the requested list without wrapping at its boundaries', () => {
+  const tracks = [{ id: 11 }, { id: 12 }, { id: 13 }];
+  const middle = createPlaybackQueue(tracks, 12);
+
+  assert.deepEqual(middle, { tracks, index: 1 });
+  assert.deepEqual(movePlaybackQueue(middle, -1), { tracks, index: 0, track: tracks[0] });
+  assert.deepEqual(movePlaybackQueue(middle, 1), { tracks, index: 2, track: tracks[2] });
+  assert.equal(movePlaybackQueue({ tracks, index: 0 }, -1), null);
+  assert.equal(movePlaybackQueue({ tracks, index: 2 }, 1), null);
 });
