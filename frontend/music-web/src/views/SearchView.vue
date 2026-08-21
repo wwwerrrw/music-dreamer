@@ -47,11 +47,12 @@ import { API_PATHS, mapTrackSummary, mediaObjectUrl } from '@music-dreamer/share
 import { api } from '../api.js';
 import StateMessage from '../components/StateMessage.vue';
 import TrackRow from '../components/TrackRow.vue';
+import { createLatestOnly } from '../ui/async-control.js';
 
 export default {
   name: 'SearchView',
   components: { ArrowLeft, Search, StateMessage, TrackRow, X },
-  data: () => ({ keyword: '', sort: 'LATEST', state: 'ready', message: '', tracks: [] }),
+  data: () => ({ keyword: '', sort: 'LATEST', state: 'ready', message: '', tracks: [], runLatestSearch: createLatestOnly() }),
   computed: {
     bestMatch() { return this.tracks[0] || null; }
   },
@@ -63,10 +64,16 @@ export default {
   methods: {
     async search() {
       this.state = 'loading';
+      this.message = '';
       try {
-        const result = await api.get(API_PATHS.catalog.search({ keyword: this.keyword, sort: this.sort }));
-        this.tracks = result.data.map(mapTrackSummary);
-        this.state = 'ready';
+        const path = API_PATHS.catalog.search({ keyword: this.keyword, sort: this.sort });
+        await this.runLatestSearch(
+          () => api.get(path),
+          (result) => {
+            this.tracks = result.data.map(mapTrackSummary);
+            this.state = 'ready';
+          }
+        );
       } catch (problem) {
         this.message = problem.detail || '搜索失败，请稍后重试。';
         this.state = 'error';

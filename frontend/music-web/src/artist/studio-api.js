@@ -25,7 +25,7 @@ export function createArtistStudioApi(api) {
     },
     async updateDraft(trackId, payload) {
       const { audio, cover, lyrics, ...next } = payload;
-      if (audio) next.mediaObjectId = await upload(audio, 'AUDIO');
+      if (audio) throw new TypeError('draft audio replacement is not supported');
       if (cover) next.coverMediaObjectId = await upload(cover, 'IMAGE');
       if (lyrics) next.lyricsMediaObjectId = await upload(lyrics, 'LYRICS');
       return (await api.put(API_PATHS.catalog.updateDraft(trackId), next)).data;

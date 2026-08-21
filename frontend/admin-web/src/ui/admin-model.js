@@ -14,6 +14,19 @@ export async function publishConfirmedMessage({ confirm, publish, payload }) {
   return publish(payload);
 }
 
+export function createSingleFlight() {
+  let pending = false;
+  return async (action) => {
+    if (pending) return undefined;
+    pending = true;
+    try {
+      return await action();
+    } finally {
+      pending = false;
+    }
+  };
+}
+
 export function viewState(page, value) {
   if (typeof value === 'string') return { page, kind: value };
   if (value?.status === 503) return { page, kind: 'error', code: 'RETRY' };

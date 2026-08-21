@@ -32,13 +32,14 @@
 <script>
 import { Bell, Megaphone, Send, ShieldCheck, Smartphone, Users } from 'lucide-vue';
 import { adminApi } from '../api/index.js';
-import { adminProblemMessage, publishConfirmedMessage } from '../ui/admin-model.js';
+import { adminProblemMessage, createSingleFlight, publishConfirmedMessage } from '../ui/admin-model.js';
 
 export default {
   name: 'MessagesView',
   components: { Bell, Megaphone, Send, ShieldCheck, Smartphone, Users },
   data: () => ({
     submitting: false,
+    publishOnce: createSingleFlight(),
     error: '',
     success: '',
     form: { subject: '', body: '' },
@@ -48,20 +49,19 @@ export default {
     }
   }),
   methods: {
-    publish() {
-      this.$refs.form.validate(async (valid) => {
-        if (!valid) return;
+    async publish() {
+      return this.publishOnce(async () => {
+        this.submitting = true;
         this.error = '';
         this.success = '';
         try {
+          const valid = await new Promise((resolve) => this.$refs.form.validate(resolve));
+          if (!valid) return;
           const message = await publishConfirmedMessage({
             confirm: () => this.$confirm('发布后将立即进入所有用户的消息中心，确认继续？', '确认发布消息', {
               confirmButtonText: '确认发布', cancelButtonText: '取消', type: 'warning'
             }),
-            publish: async (payload) => {
-              this.submitting = true;
-              return adminApi.publishMessage(payload);
-            },
+            publish: (payload) => adminApi.publishMessage(payload),
             payload: { ...this.form }
           });
           if (!message) return;

@@ -6,7 +6,7 @@
         <section class="studio-section">
           <div class="form-section-heading"><span>01</span><div><h2>媒体文件</h2><p>上传音频、封面与可选歌词。</p></div></div>
           <div class="studio-upload-grid">
-            <label class="file-dropzone primary-dropzone"><UploadCloud :size="28" aria-hidden="true" /><strong>音频文件</strong><span>{{ form.audio ? form.audio.name : draft ? '沿用现有音频，可重新选择' : '选择音频文件' }}</span><input ref="audio" type="file" accept="audio/*" :required="!draft" @change="pick('audio', $event)"><small>必填，由 Media 服务校验内容。</small></label>
+            <label class="file-dropzone primary-dropzone"><UploadCloud :size="28" aria-hidden="true" /><strong>音频文件</strong><span>{{ form.audio ? form.audio.name : draft ? '沿用现有音频' : '选择音频文件' }}</span><input ref="audio" type="file" accept="audio/*" :required="!draft" :disabled="Boolean(draft)" @change="pick('audio', $event)"><small>{{ draft ? '音频保存后不可替换。' : '必填，由 Media 服务校验内容。' }}</small></label>
             <label class="file-dropzone"><Image :size="24" aria-hidden="true" /><strong>封面图片</strong><span>{{ form.cover ? form.cover.name : draft ? '沿用现有封面，可重新选择' : '选择图片' }}</span><input ref="cover" type="file" accept="image/*" @change="pick('cover', $event)"><small>可选。</small></label>
             <label class="file-dropzone"><FileText :size="24" aria-hidden="true" /><strong>歌词文件</strong><span>{{ form.lyrics ? form.lyrics.name : draft ? '沿用现有歌词，可重新选择' : '选择 LRC' }}</span><input ref="lyrics" type="file" accept=".lrc,text/plain" @change="pick('lyrics', $event)"><small>可选，支持 LRC。</small></label>
           </div>
@@ -38,12 +38,13 @@
 import { ArrowRight, FileText, Image, Music2, Save, Send, UploadCloud, UserRound } from 'lucide-vue';
 import { artistStudio } from '../artist/client.js';
 import { draftStatusLabel, preserveStudioForm } from '../artist/studio-model.js';
+import { createSingleFlight } from '../ui/async-control.js';
 import { problemMessage } from '../ui/problem-message.js';
 
 export default {
   name: 'ArtistStudioView',
   components: { ArrowRight, FileText, Image, Music2, Save, Send, UploadCloud, UserRound },
-  data: () => ({ form: { title: '', durationSeconds: 180, audio: null, cover: null, lyrics: null }, draft: null, submitting: false, success: false, message: '' }),
+  data: () => ({ form: { title: '', durationSeconds: 180, audio: null, cover: null, lyrics: null }, draft: null, submitting: false, success: false, message: '', submitOnce: createSingleFlight() }),
   computed: {
     statusLabel() { return draftStatusLabel(this.draft && this.draft.status); }
   },
@@ -85,14 +86,20 @@ export default {
       }
     },
     async submitDraft() {
-      try {
-        this.draft = await artistStudio.submit(this.draft.id);
-        this.success = true;
-        this.message = '歌曲已提交审核。';
-      } catch (problem) {
-        this.success = false;
-        this.message = problemMessage(problem);
-      }
+      return this.submitOnce(async () => {
+        this.submitting = true;
+        this.message = '';
+        try {
+          this.draft = await artistStudio.submit(this.draft.id);
+          this.success = true;
+          this.message = '歌曲已提交审核。';
+        } catch (problem) {
+          this.success = false;
+          this.message = problemMessage(problem);
+        } finally {
+          this.submitting = false;
+        }
+      });
     }
   }
 };
