@@ -38,6 +38,10 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.musicdreamer</groupId>
             <artifactId>database-identity-migrations</artifactId>
             <version>${project.version}</version>

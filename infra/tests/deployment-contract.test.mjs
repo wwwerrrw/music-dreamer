@@ -100,6 +100,14 @@ test('mysql bootstrap creates four schema-owned application accounts', () => {
   }
 });
 
+test('identity Flyway includes MySQL database support module', () => {
+  const pom = read('backend/identity-service/pom.xml');
+  assert.match(
+    pom,
+    /<artifactId>flyway-core<\/artifactId>[\s\S]*?<artifactId>flyway-mysql<\/artifactId>/
+  );
+});
+
 test('deployment environment example is safe and ignored', () => {
   const envExample = read('deploy/.env.example');
   assert.match(envExample, /MUSIC_DREAMER_ADMIN_HOST/);
