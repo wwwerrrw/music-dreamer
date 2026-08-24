@@ -85,6 +85,11 @@ test('nginx routes API traffic and both history-mode SPAs', () => {
   assert.match(read('deploy/compose.yaml'), /NGINX_ENVSUBST_FILTER/);
 });
 
+test('frontend image makes static assets readable by nginx workers', () => {
+  const dockerfile = read('deploy/frontend.Dockerfile');
+  assert.match(dockerfile, /RUN chmod -R a\+rX \/usr\/share\/nginx\/html/);
+});
+
 test('mysql bootstrap creates four schema-owned application accounts', () => {
   const init = read('deploy/mysql/init/01-init.sh');
   for (const schema of ['music_dreamer_identity', 'music_dreamer_catalog', 'music_dreamer_interaction', 'music_dreamer_media']) {
