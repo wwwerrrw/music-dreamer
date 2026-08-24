@@ -1,0 +1,180 @@
+services:
+  mysql:
+    image: mysql:8.0.39
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MUSIC_DREAMER_IDENTITY_DB_USERNAME: ${MUSIC_DREAMER_IDENTITY_DB_USERNAME:?set identity username}
+      MUSIC_DREAMER_IDENTITY_DB_PASSWORD: ${MUSIC_DREAMER_IDENTITY_DB_PASSWORD:?set identity password}
+      MUSIC_DREAMER_CATALOG_DB_USERNAME: ${MUSIC_DREAMER_CATALOG_DB_USERNAME:?set catalog username}
+      MUSIC_DREAMER_CATALOG_DB_PASSWORD: ${MUSIC_DREAMER_CATALOG_DB_PASSWORD:?set catalog password}
+      MUSIC_DREAMER_INTERACTION_DB_USERNAME: ${MUSIC_DREAMER_INTERACTION_DB_USERNAME:?set interaction username}
+      MUSIC_DREAMER_INTERACTION_DB_PASSWORD: ${MUSIC_DREAMER_INTERACTION_DB_PASSWORD:?set interaction password}
+      MUSIC_DREAMER_MEDIA_DB_USERNAME: ${MUSIC_DREAMER_MEDIA_DB_USERNAME:?set media username}
+      MUSIC_DREAMER_MEDIA_DB_PASSWORD: ${MUSIC_DREAMER_MEDIA_DB_PASSWORD:?set media password}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8848/nacos/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+      args:
+        SERVICE: gateway-service
+    restart: unless-stopped
+    environment:
+      MUSIC_DREAMER_REDIS_HOST: redis
+      MUSIC_DREAMER_REDIS_PORT: 6379
+      MUSIC_DREAMER_NACOS_SERVER: nacos:8848
+    depends_on:
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      identity:
+        condition: service_started
+      catalog:
+        condition: service_started
+      interaction:
+        condition: service_started
+      media:
+        condition: service_started
+
+  identity:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+      args:
+        SERVICE: identity-service
+    restart: unless-stopped
+    environment:
+      MUSIC_DREAMER_IDENTITY_JDBC_URL: jdbc:mysql://mysql:3306/music_dreamer_identity?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      MUSIC_DREAMER_IDENTITY_DB_USERNAME: ${MUSIC_DREAMER_IDENTITY_DB_USERNAME}
+      MUSIC_DREAMER_IDENTITY_DB_PASSWORD: ${MUSIC_DREAMER_IDENTITY_DB_PASSWORD}
+      SPRING_FLYWAY_ENABLED: "true"
+      MUSIC_DREAMER_REDIS_HOST: redis
+      MUSIC_DREAMER_REDIS_PORT: 6379
+      MUSIC_DREAMER_NACOS_SERVER: nacos:8848
+      MUSIC_DREAMER_IDENTITY_MEDIA_COOKIE_SECURE: ${MUSIC_DREAMER_IDENTITY_MEDIA_COOKIE_SECURE}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+
+  catalog:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+      args:
+        SERVICE: catalog-service
+    restart: unless-stopped
+    environment:
+      MUSIC_DREAMER_CATALOG_JDBC_URL: jdbc:mysql://mysql:3306/music_dreamer_catalog?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      MUSIC_DREAMER_CATALOG_DB_USERNAME: ${MUSIC_DREAMER_CATALOG_DB_USERNAME}
+      MUSIC_DREAMER_CATALOG_DB_PASSWORD: ${MUSIC_DREAMER_CATALOG_DB_PASSWORD}
+      MUSIC_DREAMER_NACOS_SERVER: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+
+  interaction:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+      args:
+        SERVICE: interaction-service
+    restart: unless-stopped
+    environment:
+      MUSIC_DREAMER_INTERACTION_JDBC_URL: jdbc:mysql://mysql:3306/music_dreamer_interaction?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      MUSIC_DREAMER_INTERACTION_DB_USERNAME: ${MUSIC_DREAMER_INTERACTION_DB_USERNAME}
+      MUSIC_DREAMER_INTERACTION_DB_PASSWORD: ${MUSIC_DREAMER_INTERACTION_DB_PASSWORD}
+      MUSIC_DREAMER_NACOS_SERVER: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+
+  media:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+      args:
+        SERVICE: media-service
+    restart: unless-stopped
+    environment:
+      MUSIC_DREAMER_MEDIA_JDBC_URL: jdbc:mysql://mysql:3306/music_dreamer_media?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      MUSIC_DREAMER_MEDIA_DB_USERNAME: ${MUSIC_DREAMER_MEDIA_DB_USERNAME}
+      MUSIC_DREAMER_MEDIA_DB_PASSWORD: ${MUSIC_DREAMER_MEDIA_DB_PASSWORD}
+      MUSIC_DREAMER_NACOS_SERVER: nacos:8848
+      MUSIC_DREAMER_MEDIA_STORAGE_ROOT: ${MUSIC_DREAMER_MEDIA_STORAGE_ROOT}
+    volumes:
+      - media-data:${MUSIC_DREAMER_MEDIA_STORAGE_ROOT}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: deploy/frontend.Dockerfile
+    image: music-dreamer/frontend:local
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      PUBLIC_HOST: ${MUSIC_DREAMER_PUBLIC_HOST}
+      ADMIN_HOST: ${MUSIC_DREAMER_ADMIN_HOST}
+      NGINX_ENVSUBST_FILTER: "^(PUBLIC_HOST|ADMIN_HOST)$"
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      gateway:
+        condition: service_started
+
+volumes:
+  mysql-data:
+  redis-data:
+  nacos-data:
+  nacos-logs:
+  media-data:

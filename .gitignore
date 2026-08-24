@@ -32,6 +32,7 @@
 /test-results/
 /playwright-report/
 /blob-report/
+/deploy/.env
 /*-classpath*.txt
 /music-*.png
 
