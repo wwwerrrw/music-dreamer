@@ -12,6 +12,7 @@ public final class IdentityFailure extends RuntimeException {
         REGISTRATION_CONFLICT,
         FORBIDDEN,
         USER_NOT_FOUND,
+        ROLE_CONFLICT,
         ACTIVATION_TOKEN_INVALID,
         ACTIVATION_TOKEN_EXPIRED,
         ACTIVATION_TOKEN_USED

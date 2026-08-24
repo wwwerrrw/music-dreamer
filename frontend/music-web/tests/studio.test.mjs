@@ -62,25 +62,25 @@ test('draft update and submit use the current catalog contract', async () => {
   ]);
 });
 
-test('draft update rejects unsupported audio replacement before uploading media', async () => {
+test('studio lists the current singer published tracks and removes the selected track', async () => {
   const calls = [];
   const api = {
-    post: async (path, body, options) => {
-      calls.push({ method: 'POST', path, body, options });
-      return { data: { id: 81 } };
+    get: async (path) => {
+      calls.push(['GET', path]);
+      return { data: [{ id: 8, title: '凌晨两点', artistUserId: 16, mediaObjectId: 71, durationMs: 208000, playCount: 3, status: 'PUBLISHED' }] };
     },
-    put: async (path, body) => {
-      calls.push({ method: 'PUT', path, body });
-      return { data: { id: 8, ...body, status: 'DRAFT' } };
-    }
+    delete: async (path) => { calls.push(['DELETE', path]); }
   };
   const studio = createArtistStudioApi(api);
-  await assert.rejects(studio.updateDraft(8, {
-    title: '替换后的版本', durationMs: 215000,
-    mediaObjectId: 71, coverMediaObjectId: 72, lyricsMediaObjectId: 73,
-    audio: new Blob(['new-audio'])
-  }), /draft audio replacement is not supported/);
-  assert.deepEqual(calls, []);
+
+  const tracks = await studio.publishedTracks(16);
+  await studio.removePublished(8);
+
+  assert.equal(tracks[0].artistStageName, '歌手 #16');
+  assert.deepEqual(calls, [
+    ['GET', '/api/catalog/artists/16/tracks'],
+    ['DELETE', '/api/catalog/tracks/8']
+  ]);
 });
 
 test('upload errors preserve entered studio values and status labels are accurate', () => {

@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -70,6 +71,15 @@ public final class CatalogController {
                 request.lyricsMediaObjectId());
     }
 
+    @DeleteMapping("/tracks/{trackId}")
+    public ResponseEntity<Void> removePublished(
+            @RequestHeader HttpHeaders headers,
+            @PathVariable long trackId) {
+        AuthenticatedPrincipal principal = require(headers, Role.SINGER);
+        catalog.removePublished(principal.userId(), trackId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/admin/tracks/{trackId}/publish")
     public TrackSummary publish(@RequestHeader HttpHeaders headers, @PathVariable long trackId) {
         AuthenticatedPrincipal principal = require(headers, Role.ADMIN);
@@ -111,6 +121,22 @@ public final class CatalogController {
         return catalog.findArtist(userId);
     }
 
+    @GetMapping("/artists/search")
+    public List<ArtistSummary> searchArtists(
+            @RequestHeader HttpHeaders headers,
+            @RequestParam(defaultValue = "") String keyword) {
+        requireActive(headers);
+        return catalog.searchArtists(keyword);
+    }
+
+    @GetMapping("/artists/{userId}/tracks")
+    public List<TrackSummary> publishedByArtist(
+            @RequestHeader HttpHeaders headers,
+            @PathVariable @Positive long userId) {
+        requireActive(headers);
+        return catalog.publishedByArtist(userId);
+    }
+
     @GetMapping("/tracks/search")
     public List<TrackSummary> search(
             @RequestHeader HttpHeaders headers,
@@ -123,13 +149,19 @@ public final class CatalogController {
     @GetMapping("/tracks/{trackId}")
     public TrackSummary find(@RequestHeader HttpHeaders headers, @PathVariable long trackId) {
         requireActive(headers);
-        return catalog.find(trackId);
+        return catalog.playable(trackId);
     }
 
     @GetMapping("/tracks/{trackId}/playable")
     public TrackSummary playable(@RequestHeader HttpHeaders headers, @PathVariable long trackId) {
         requireActive(headers);
         return catalog.playable(trackId);
+    }
+
+    @PostMapping("/tracks/{trackId}/plays")
+    public TrackSummary recordPlay(@RequestHeader HttpHeaders headers, @PathVariable @Positive long trackId) {
+        requireActive(headers);
+        return catalog.recordPlay(trackId);
     }
 
     private static AuthenticatedPrincipal require(HttpHeaders headers, Role role) {

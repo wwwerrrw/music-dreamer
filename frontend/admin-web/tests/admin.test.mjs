@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 
 import { resolveAdminAccess } from '../src/router/access.js';
 import { createAdminApi } from '../src/api/admin-api.js';
-import { confirmAction, adminProblemMessage, publishConfirmedMessage, viewState } from '../src/ui/admin-model.js';
-import * as adminModel from '../src/ui/admin-model.js';
+import { confirmAction, adminProblemMessage, viewState } from '../src/ui/admin-model.js';
 
 test('admin guard sends unauthenticated and non-admin sessions to login', () => {
   assert.deepEqual(resolveAdminAccess('/tracks', null), { allow: false, redirect: '/login?redirect=%2Ftracks' });
@@ -22,6 +21,7 @@ test('admin adapter maps user, track, and message operations to owned service pa
   await admin.users();
   await admin.tracks({ status: 'SUBMITTED', page: 0, size: 20 });
   await admin.lockUser(16);
+  await admin.promoteSinger(16);
   await admin.publishTrack(8);
   await admin.lockTrack(8);
   await admin.publishMessage({ subject: '公告', body: '内容' });
@@ -29,6 +29,7 @@ test('admin adapter maps user, track, and message operations to owned service pa
     ['GET', '/api/identity/admin/users'],
     ['GET', '/api/catalog/admin/tracks?status=SUBMITTED&page=0&size=20'],
     ['POST', '/api/identity/admin/users/16/lock'],
+    ['POST', '/api/identity/admin/users/16/promote-singer'],
     ['POST', '/api/catalog/admin/tracks/8/publish'],
     ['POST', '/api/catalog/admin/tracks/8/lock'],
     ['POST', '/api/interaction/admin/messages', { subject: '公告', body: '内容' }]
@@ -42,39 +43,6 @@ test('dangerous action cancellation does not call the API', async () => {
   assert.equal(calls, 0);
   assert.equal(await confirmAction(true, action), true);
   assert.equal(calls, 1);
-});
-
-test('broadcast publication calls the API only after explicit confirmation', async () => {
-  const calls = [];
-  const payload = { subject: '公告', body: '内容' };
-  const publish = async (value) => { calls.push(value); return { id: 21 }; };
-
-  const cancelled = await publishConfirmedMessage({
-    confirm: async () => { throw 'cancel'; },
-    publish,
-    payload
-  });
-  assert.equal(cancelled, null);
-  assert.deepEqual(calls, []);
-
-  const message = await publishConfirmedMessage({ confirm: async () => true, publish, payload });
-  assert.deepEqual(message, { id: 21 });
-  assert.deepEqual(calls, [payload]);
-});
-
-test('broadcast publication gate ignores overlapping submissions', async () => {
-  assert.equal(typeof adminModel.createSingleFlight, 'function');
-  let resolve;
-  const pending = new Promise((next) => { resolve = next; });
-  let calls = 0;
-  const runOnce = adminModel.createSingleFlight();
-  const action = () => { calls += 1; return pending; };
-
-  const first = runOnce(action);
-  assert.equal(await runOnce(action), undefined);
-  assert.equal(calls, 1);
-  resolve('published');
-  assert.equal(await first, 'published');
 });
 
 test('admin pages keep independent states and distinct failure messages', () => {

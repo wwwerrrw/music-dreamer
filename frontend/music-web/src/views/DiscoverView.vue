@@ -81,7 +81,11 @@ export default {
   },
   methods: {
     coverFor(track) { return track.coverMediaObjectId ? mediaObjectUrl(track.coverMediaObjectId) : '/assets/studio-piano.jpg'; },
-    play(track) { this.$store.dispatch('player/playTrack', track); }
+    play(track) {
+      const popular = this.discovery?.popular.tracks || [];
+      const queue = popular.some((item) => item.id === track.id) ? popular : (this.discovery?.latest.tracks || []);
+      this.$store.dispatch('player/playTrack', { track, queue });
+    }
   }
 };
 </script>

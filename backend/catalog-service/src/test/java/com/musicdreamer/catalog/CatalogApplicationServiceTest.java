@@ -83,6 +83,35 @@ class CatalogApplicationServiceTest {
     }
 
     @Test
+    void searchFindsPublishedTracksByArtistNameAndExposesArtistMatches() {
+        service.upsertArtist(9L, "North Shore", "Writes after midnight.");
+        TrackSummary draft = service.createDraft(9L, "Blue Hour", 101L, 1L);
+        service.submit(9L, draft.id());
+        service.publish(1L, draft.id());
+
+        assertThat(service.search("north", TrackSort.LATEST))
+                .extracting(TrackSummary::id)
+                .containsExactly(draft.id());
+        assertThat(service.searchArtists("shore"))
+                .containsExactly(new ArtistSummary(9L, "North Shore", "Writes after midnight."));
+    }
+
+    @Test
+    void publishedArtistTracksExcludeDraftsAndOtherSingers() {
+        TrackSummary published = service.createDraft(9L, "Published", 101L, 1L);
+        service.submit(9L, published.id());
+        service.publish(1L, published.id());
+        service.createDraft(9L, "Draft", 102L, 1L);
+        TrackSummary other = service.createDraft(10L, "Other", 103L, 1L);
+        service.submit(10L, other.id());
+        service.publish(1L, other.id());
+
+        assertThat(service.publishedByArtist(9L))
+                .extracting(TrackSummary::id)
+                .containsExactly(published.id());
+    }
+
+    @Test
     void adminTrackPageFiltersByStatusAndUsesStableLatestOrder() {
         TrackSummary first = service.createDraft(9L, "First pending", 101L, 1L);
         service.submit(9L, first.id());
@@ -162,6 +191,53 @@ class CatalogApplicationServiceTest {
         service.lock(1L, draft.id());
 
         assertThatThrownBy(() -> service.playable(draft.id()))
+                .isInstanceOf(CatalogStateException.class);
+    }
+
+    @Test
+    void singerRemovesOwnPublishedTrackFromPublicCatalog() {
+        TrackSummary draft = service.createDraft(9L, "Last Light", 101L, 1L);
+        service.submit(9L, draft.id());
+        service.publish(1L, draft.id());
+
+        service.removePublished(9L, draft.id());
+
+        assertThat(service.find(draft.id()).status().name()).isEqualTo("REMOVED");
+        assertThat(service.search("last", TrackSort.LATEST)).isEmpty();
+        assertThat(service.publishedByArtist(9L)).isEmpty();
+        assertThatThrownBy(() -> service.playable(draft.id()))
+                .isInstanceOf(CatalogStateException.class);
+    }
+
+    @Test
+    void singerCannotRemoveAnotherSingersTrackOrAnUnpublishedTrack() {
+        TrackSummary published = service.createDraft(9L, "Owned", 101L, 1L);
+        service.submit(9L, published.id());
+        service.publish(1L, published.id());
+        TrackSummary draft = service.createDraft(9L, "Still drafting", 102L, 1L);
+
+        assertThatThrownBy(() -> service.removePublished(10L, published.id()))
+                .isInstanceOf(CatalogAuthorizationException.class);
+        assertThatThrownBy(() -> service.removePublished(9L, draft.id()))
+                .isInstanceOf(CatalogStateException.class);
+        assertThat(service.find(published.id()).status()).isEqualTo(TrackStatus.PUBLISHED);
+        assertThat(service.find(draft.id()).status()).isEqualTo(TrackStatus.DRAFT);
+    }
+
+    @Test
+    void recordingPlaybackAtomicallyIncrementsOnlyPublishedTrackCount() {
+        TrackSummary draft = service.createDraft(9L, "Counted", 101L, 1L);
+        service.submit(9L, draft.id());
+        service.publish(1L, draft.id());
+
+        assertThat(service.recordPlay(draft.id()).playCount()).isEqualTo(1L);
+        assertThat(service.recordPlay(draft.id()).playCount()).isEqualTo(2L);
+
+        TrackSummary locked = service.createDraft(9L, "Locked count", 102L, 1L);
+        service.submit(9L, locked.id());
+        service.publish(1L, locked.id());
+        service.lock(1L, locked.id());
+        assertThatThrownBy(() -> service.recordPlay(locked.id()))
                 .isInstanceOf(CatalogStateException.class);
     }
 

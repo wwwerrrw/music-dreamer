@@ -32,6 +32,8 @@
 /test-results/
 /playwright-report/
 /blob-report/
+/*-classpath*.txt
+/music-*.png
 
 # IDE and operating system files
 /.idea/

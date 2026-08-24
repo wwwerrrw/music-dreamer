@@ -140,6 +140,28 @@ public class CatalogApplicationService implements CatalogOperations {
         return track;
     }
 
+    @Override
+    @Transactional
+    public void removePublished(long singerUserId, long trackId) {
+        TrackSummary track = find(trackId);
+        if (track.artistUserId() != singerUserId) {
+            throw new CatalogAuthorizationException();
+        }
+        if (track.status() != TrackStatus.PUBLISHED) {
+            throw new CatalogStateException("Only published tracks can be removed");
+        }
+        int updated = jdbc.update(
+                "UPDATE tracks SET status = ?, version = version + 1 "
+                        + "WHERE id = ? AND artist_user_id = ? AND status = ?",
+                TrackStatus.REMOVED.name(),
+                trackId,
+                singerUserId,
+                TrackStatus.PUBLISHED.name());
+        if (updated == 0) {
+            throw new CatalogStateException("Track state changed before it could be removed");
+        }
+    }
+
     @Transactional
     public TrackSummary publish(long adminUserId, long trackId) {
         TrackSummary track = find(trackId);
@@ -177,6 +199,21 @@ public class CatalogApplicationService implements CatalogOperations {
         return track;
     }
 
+    @Override
+    @Transactional
+    public TrackSummary recordPlay(long trackId) {
+        int updated = jdbc.update(
+                "UPDATE tracks SET play_count = play_count + 1, version = version + 1 "
+                        + "WHERE id = ? AND status = ?",
+                trackId,
+                TrackStatus.PUBLISHED.name());
+        if (updated == 0) {
+            playable(trackId);
+            throw new CatalogStateException("Track playback could not be recorded");
+        }
+        return find(trackId);
+    }
+
     public List<TrackSummary> search(String keyword, TrackSort sort) {
         String normalized = keyword == null ? "" : keyword.trim().toLowerCase();
         String order = sort == TrackSort.POPULAR
@@ -185,9 +222,36 @@ public class CatalogApplicationService implements CatalogOperations {
         return jdbc.query(
                 "SELECT " + TRACK_COLUMNS
                         + "FROM tracks t LEFT JOIN artist_profiles a ON a.user_id = t.artist_user_id "
-                        + "WHERE t.status = ? AND LOWER(t.title) LIKE ? ORDER BY " + order,
+                        + "WHERE t.status = ? AND (LOWER(t.title) LIKE ? "
+                        + "OR LOWER(COALESCE(a.stage_name, '')) LIKE ?) ORDER BY " + order,
                 trackMapper(),
-                TrackStatus.PUBLISHED.name(), "%" + normalized + "%");
+                TrackStatus.PUBLISHED.name(), "%" + normalized + "%", "%" + normalized + "%");
+    }
+
+    @Override
+    public List<ArtistSummary> searchArtists(String keyword) {
+        String normalized = keyword == null ? "" : keyword.trim().toLowerCase();
+        return jdbc.query(
+                "SELECT user_id, stage_name, biography FROM artist_profiles "
+                        + "WHERE status = ? AND LOWER(stage_name) LIKE ? ORDER BY stage_name ASC, user_id ASC",
+                (rs, rowNum) -> new ArtistSummary(
+                        rs.getLong("user_id"),
+                        rs.getString("stage_name"),
+                        rs.getString("biography")),
+                "ACTIVE",
+                "%" + normalized + "%");
+    }
+
+    @Override
+    public List<TrackSummary> publishedByArtist(long userId) {
+        return jdbc.query(
+                "SELECT " + TRACK_COLUMNS
+                        + "FROM tracks t LEFT JOIN artist_profiles a ON a.user_id = t.artist_user_id "
+                        + "WHERE t.artist_user_id = ? AND t.status = ? "
+                        + "ORDER BY t.created_at DESC, t.id DESC",
+                trackMapper(),
+                userId,
+                TrackStatus.PUBLISHED.name());
     }
 
     @Override

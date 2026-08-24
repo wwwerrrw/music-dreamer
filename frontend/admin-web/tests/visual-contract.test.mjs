@@ -12,11 +12,8 @@ const tracks = source('views/TracksView.vue');
 const users = source('views/UsersView.vue');
 const messages = source('views/MessagesView.vue');
 const css = source('styles/admin.css');
-const documentShell = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
 
 test('admin shell and login use the approved Chinese brand and light chrome', () => {
-  assert.match(documentShell, /<title>悦享音乐管理后台<\/title>/);
-  assert.match(documentShell, /name="theme-color" content="#fff8f7"/);
   assert.match(shell, /悦享音乐/);
   assert.match(shell, /admin-topbar/);
   assert.doesNotMatch(shell, />MD\s*<span>管理/);

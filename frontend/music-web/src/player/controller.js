@@ -18,6 +18,11 @@ export function createPlayerController({ audio }) {
       else audio.pause();
       return !audio.paused;
     },
+    async restart() {
+      audio.currentTime = 0;
+      await audio.play();
+      return !audio.paused;
+    },
     seek(seconds) {
       const duration = Number.isFinite(audio.duration) ? audio.duration : seconds;
       audio.currentTime = Math.max(0, Math.min(seconds, duration));

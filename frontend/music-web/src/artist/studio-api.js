@@ -1,4 +1,4 @@
-import { API_PATHS } from '@music-dreamer/shared';
+import { API_PATHS, mapTrackSummary } from '@music-dreamer/shared';
 
 export function createArtistStudioApi(api) {
   const upload = async (file, mediaType) => {
@@ -23,13 +23,11 @@ export function createArtistStudioApi(api) {
       };
       return (await api.post(API_PATHS.catalog.drafts, payload)).data;
     },
-    async updateDraft(trackId, payload) {
-      const { audio, cover, lyrics, ...next } = payload;
-      if (audio) throw new TypeError('draft audio replacement is not supported');
-      if (cover) next.coverMediaObjectId = await upload(cover, 'IMAGE');
-      if (lyrics) next.lyricsMediaObjectId = await upload(lyrics, 'LYRICS');
-      return (await api.put(API_PATHS.catalog.updateDraft(trackId), next)).data;
+    async updateDraft(trackId, payload) { return (await api.put(API_PATHS.catalog.updateDraft(trackId), payload)).data; },
+    async submit(trackId) { return (await api.post(API_PATHS.catalog.submit(trackId))).data; },
+    async publishedTracks(userId) {
+      return (await api.get(API_PATHS.catalog.artistTracks(userId))).data.map(mapTrackSummary);
     },
-    async submit(trackId) { return (await api.post(API_PATHS.catalog.submit(trackId))).data; }
+    async removePublished(trackId) { await api.delete(API_PATHS.catalog.track(trackId)); }
   };
 }

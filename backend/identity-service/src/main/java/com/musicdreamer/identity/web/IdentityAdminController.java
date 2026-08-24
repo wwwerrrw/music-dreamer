@@ -39,6 +39,14 @@ public final class IdentityAdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{userId}/promote-singer")
+    public ResponseEntity<Void> promoteToSinger(
+            @RequestHeader HttpHeaders headers,
+            @PathVariable long userId) {
+        administration.promoteToSinger(principal(headers), userId);
+        return ResponseEntity.noContent().build();
+    }
+
     private static AuthenticatedPrincipal principal(HttpHeaders headers) {
         return TrustedIdentityHeaders.principalFrom(headers).orElseThrow(() ->
                 new IdentityFailure(IdentityFailure.Reason.FORBIDDEN));

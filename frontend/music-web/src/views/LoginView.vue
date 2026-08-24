@@ -1,5 +1,5 @@
 <template>
-  <AuthLayout title="欢迎回来" subtitle="准备好开启悦耳之旅了吗？">
+  <AuthLayout immersive title="欢迎回来" subtitle="准备好开启悦耳之旅了吗？">
     <form class="auth-form" @submit.prevent="submit">
       <label class="auth-field">
         <span>账号或邮箱</span>

@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class MediaFileValidatorTest {
 
@@ -54,5 +57,18 @@ class MediaFileValidatorTest {
         assertThat(validator.validate("cover.png", "image/png",
                 new byte[] {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10}, MediaType.IMAGE)
                 .mediaType()).isEqualTo(MediaType.IMAGE);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "application/octet-stream")
+    void acceptsBrowserGenericMimeForUtf8Lrc(String mimeType) {
+        MediaFileValidator.ValidatedFile result = validator.validate(
+                "demo.lrc",
+                mimeType,
+                "[00:01.00]hello".getBytes(StandardCharsets.UTF_8),
+                MediaType.LYRICS);
+
+        assertThat(result.mimeType()).isEqualTo("text/plain");
     }
 }

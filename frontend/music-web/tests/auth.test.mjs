@@ -9,7 +9,6 @@ import {
 } from '../src/auth/session.js';
 import {
   defaultRouteFor,
-  mobileNavigation,
   navigationFor,
   resolveRouteAccess
 } from '../src/router/access.js';
@@ -61,12 +60,6 @@ test('login destinations and navigation reflect the server-issued role', () => {
   assert.equal(defaultRouteFor('SINGER'), '/artist/studio');
   assert.equal(navigationFor('USER').some((item) => item.path === '/artist/studio'), false);
   assert.equal(navigationFor('SINGER').some((item) => item.path === '/artist/studio'), true);
-});
-
-test('mobile navigation keeps messages directly reachable without duplicating library tabs', () => {
-  assert.deepEqual(mobileNavigation().map((item) => item.path), [
-    '/discover', '/search', '/messages', '/library/favorites'
-  ]);
 });
 
 test('401 clears the session while 403 preserves it', () => {
@@ -148,7 +141,7 @@ test('route records cover all approved public, library, artist, and detail route
   const routes = new Map(routeRecords.map((route) => [route.path, route]));
   for (const path of [
     '/login', '/register', '/activate', '/discover', '/search', '/tracks/:trackId',
-    '/artists/:userId', '/library/favorites', '/library/playlists',
+    '/artists/:userId', '/profile', '/library/favorites', '/library/playlists',
     '/library/playlists/:playlistId', '/library/history', '/messages',
     '/artist/profile', '/artist/studio'
   ]) {
@@ -156,6 +149,7 @@ test('route records cover all approved public, library, artist, and detail route
   }
   assert.equal(routes.get('/artist/studio').meta.role, 'SINGER');
   assert.equal(routes.get('/discover').meta.requiresAuth, true);
+  assert.equal(routes.get('/profile').meta.requiresAuth, true);
   assert.equal(routes.get('/login').meta.requiresAuth, false);
 });
 

@@ -13,7 +13,7 @@
             <span>认证音乐人</span>
             <h1>{{ artist.stageName }}</h1>
             <p>{{ tracks.length }} 首已发布作品</p>
-            <button v-if="tracks.length" class="primary-button" type="button" @click="playAll"><Play :size="18" fill="currentColor" aria-hidden="true" /><span>播放全部</span></button>
+            <button v-if="tracks.length" class="primary-button" type="button" @click="play(tracks[0])"><Play :size="18" fill="currentColor" aria-hidden="true" /><span>播放全部</span></button>
           </div>
         </div>
       </header>
@@ -53,10 +53,13 @@ export default {
   },
   async mounted() {
     try {
-      const artist = await api.get(API_PATHS.catalog.artist(Number(this.$route.params.userId)));
+      const userId = Number(this.$route.params.userId);
+      const [artist, tracks] = await Promise.all([
+        api.get(API_PATHS.catalog.artist(userId)),
+        api.get(API_PATHS.catalog.artistTracks(userId))
+      ]);
       this.artist = artist.data;
-      const tracks = await api.get(API_PATHS.catalog.search({ keyword: this.artist.stageName, sort: 'LATEST' }));
-      this.tracks = tracks.data.map(mapTrackSummary).filter((track) => track.artistUserId === this.artist.userId);
+      this.tracks = tracks.data.map(mapTrackSummary);
       this.state = 'ready';
     } catch (problem) {
       this.state = 'error';
@@ -64,8 +67,7 @@ export default {
     }
   },
   methods: {
-    playAll() { this.$store.dispatch('player/playQueue', { tracks: this.tracks, startTrackId: this.tracks[0].id }); },
-    play(track) { this.$store.dispatch('player/playQueue', { tracks: this.tracks, startTrackId: track.id }); }
+    play(track) { this.$store.dispatch('player/playTrack', { track, queue: this.tracks }); }
   }
 };
 </script>

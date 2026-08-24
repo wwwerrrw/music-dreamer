@@ -58,6 +58,21 @@ class InteractionApplicationServiceTest {
     }
 
     @Test
+    void playlistOwnerDeletesPlaylistRelationsButOtherUserIsForbidden() {
+        PlaylistSummary playlist = service.createPlaylist(14L, "Road Trip", "Songs", "PRIVATE");
+        service.addTrack(14L, playlist.id(), 2L, 0);
+        jdbc.update("INSERT INTO playlist_follows (user_id, playlist_id, version) VALUES (?, ?, 0)", 15L, playlist.id());
+
+        assertThatThrownBy(() -> service.deletePlaylist(15L, playlist.id()))
+                .isInstanceOf(InteractionAuthorizationException.class);
+        service.deletePlaylist(14L, playlist.id());
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM playlists WHERE id = ?", Integer.class, playlist.id())).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = ?", Integer.class, playlist.id())).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM playlist_follows WHERE playlist_id = ?", Integer.class, playlist.id())).isZero();
+    }
+
+    @Test
     void listeningHistoryUpdatesRecentPositionInsteadOfDuplicatingRows() {
         service.updateHistory(14L, 2L, 100L);
         service.updateHistory(14L, 2L, 250L);

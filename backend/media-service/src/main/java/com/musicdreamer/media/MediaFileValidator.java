@@ -28,10 +28,11 @@ public final class MediaFileValidator {
             throw new MediaValidationException("File size is invalid");
         }
         String extension = extension(filename);
-        if (!matchesType(extension, mimeType, mediaType) || !matchesMagic(bytes, extension, mediaType)) {
+        String normalizedMimeType = normalizeMimeType(mimeType, mediaType);
+        if (!matchesType(extension, normalizedMimeType, mediaType) || !matchesMagic(bytes, extension, mediaType)) {
             throw new MediaValidationException("File content does not match its declared type");
         }
-        return new ValidatedFile(filename, mimeType, mediaType, bytes.length, digest(bytes));
+        return new ValidatedFile(filename, normalizedMimeType, mediaType, bytes.length, digest(bytes));
     }
 
     private static String extension(String filename) {
@@ -52,6 +53,16 @@ public final class MediaFileValidator {
                     || extension.equals("webp") && "image/webp".equalsIgnoreCase(mimeType);
             case LYRICS -> extension.equals("lrc") && "text/plain".equalsIgnoreCase(mimeType);
         };
+    }
+
+    private static String normalizeMimeType(String mimeType, MediaType mediaType) {
+        if (mediaType == MediaType.LYRICS
+                && (mimeType == null
+                        || mimeType.isBlank()
+                        || "application/octet-stream".equalsIgnoreCase(mimeType))) {
+            return "text/plain";
+        }
+        return mimeType;
     }
 
     private static boolean matchesMagic(byte[] bytes, String extension, MediaType mediaType) {

@@ -110,6 +110,14 @@ public class InteractionApplicationService {
         jdbc.update("DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?", playlistId, trackId);
     }
 
+    @Transactional
+    public void deletePlaylist(long userId, long playlistId) {
+        requireOwner(userId, findPlaylist(playlistId));
+        jdbc.update("DELETE FROM playlist_follows WHERE playlist_id = ?", playlistId);
+        jdbc.update("DELETE FROM playlist_tracks WHERE playlist_id = ?", playlistId);
+        jdbc.update("DELETE FROM playlists WHERE id = ?", playlistId);
+    }
+
     public List<ListeningHistorySummary> history(long userId) {
         return jdbc.query(
                 "SELECT track_id, position_ms, last_listened_at FROM listening_history "

@@ -7,6 +7,7 @@ import com.musicdreamer.identity.domain.UserAccount;
 import com.musicdreamer.identity.port.SessionIssuer;
 import com.musicdreamer.identity.port.UserAccounts;
 import com.musicdreamer.security.AccountStatus;
+import com.musicdreamer.security.AuthenticatedPrincipal;
 import com.musicdreamer.security.Role;
 import java.time.Clock;
 import java.time.Instant;
@@ -90,6 +91,32 @@ class IdentityApplicationServiceTest {
                 .isInstanceOfSatisfying(IdentityFailure.class, failure ->
                         assertThat(failure.reason()).isEqualTo(IdentityFailure.Reason.INVALID_CREDENTIALS));
         assertThat(sessions.issuedCount()).isZero();
+    }
+
+    @Test
+    void activeUserReadsOnlyTheirOwnProfileWithoutPasswordMaterial() {
+        InMemoryUserAccounts users = new InMemoryUserAccounts();
+        users.save(new UserAccount(
+                15L,
+                "listener",
+                "listener@example.test",
+                "must-not-be-exposed",
+                Role.USER,
+                AccountStatus.ACTIVE,
+                2L));
+        IdentityApplicationService service = new IdentityApplicationService(
+                users,
+                (rawPassword, passwordHash) -> false,
+                new RecordingSessionIssuer(),
+                CLOCK);
+
+        assertThat(service.currentUser(new AuthenticatedPrincipal(15L, Role.USER, AccountStatus.ACTIVE)))
+                .isEqualTo(new UserSummary(
+                        15L, "listener", "listener@example.test", Role.USER, AccountStatus.ACTIVE, 2L));
+        assertThatThrownBy(() -> service.currentUser(
+                new AuthenticatedPrincipal(15L, Role.USER, AccountStatus.LOCKED)))
+                .isInstanceOfSatisfying(IdentityFailure.class, failure ->
+                        assertThat(failure.reason()).isEqualTo(IdentityFailure.Reason.FORBIDDEN));
     }
 
     private static final class InMemoryUserAccounts implements UserAccounts {

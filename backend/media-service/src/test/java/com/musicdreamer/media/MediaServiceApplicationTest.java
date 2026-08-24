@@ -2,11 +2,14 @@ package com.musicdreamer.media;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.flywaydb.core.internal.database.DatabaseTypeRegister;
+import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 
 @SpringBootTest(
         classes = MediaServiceApplication.class,
@@ -37,5 +40,16 @@ class MediaServiceApplicationTest {
     void productionClasspathSupportsMysqlFlywayMigrations() {
         assertThat(DatabaseTypeRegister.getDatabaseTypeForUrl(
                 "jdbc:mysql://127.0.0.1:3306/music_dreamer_media")).isNotNull();
+    }
+
+    @Test
+    void uploadOperationsHaveNoSpringTransactionAdvice() {
+        assertThat(media).satisfies(candidate -> {
+            if (candidate instanceof Advised advised) {
+                boolean hasTransactionAdvice = Arrays.stream(advised.getAdvisors())
+                        .anyMatch(advisor -> advisor.getAdvice() instanceof TransactionInterceptor);
+                assertThat(hasTransactionAdvice).isFalse();
+            }
+        });
     }
 }

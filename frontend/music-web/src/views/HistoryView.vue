@@ -34,7 +34,7 @@ export default {
     }
   },
   methods: {
-    play(track) { this.$store.dispatch('player/playTrack', track); }
+    play(track) { this.$store.dispatch('player/playTrack', { track, queue: this.tracks }); }
   }
 };
 </script>

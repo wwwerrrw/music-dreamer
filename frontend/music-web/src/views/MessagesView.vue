@@ -16,8 +16,7 @@
         </button>
       </section>
 
-      <article v-if="selectedMessage" class="message-detail-panel" :class="{ 'is-mobile-open': detailOpen }" aria-label="消息详情">
-        <button class="message-detail-close" type="button" aria-label="关闭消息详情" title="关闭消息详情" @click="closeDetail"><X :size="20" aria-hidden="true" /></button>
+      <article v-if="selectedMessage" class="message-detail-panel">
         <header><span class="message-detail-icon"><Bell :size="22" aria-hidden="true" /></span><div><h2>{{ selectedMessage.subject }}</h2><p>悦享音乐 · {{ formatDate(selectedMessage.publishedAt) }}</p></div></header>
         <div class="message-detail-body">{{ selectedMessage.body }}</div>
         <button v-if="!selectedMessage.readAt" class="primary-button" type="button" @click="read(selectedMessage.id)"><Check :size="17" aria-hidden="true" /><span>标记已读</span></button>
@@ -29,16 +28,16 @@
   </div>
 </template>
 <script>
-import { Bell, Check, CheckCheck, Mail, X } from 'lucide-vue';
+import { Bell, Check, CheckCheck, Mail } from 'lucide-vue';
 import StateMessage from '../components/StateMessage.vue';
 import { library } from '../library/client.js';
-import { closeMessageDetail, markMessageRead, openMessageDetail } from '../library/models.js';
+import { markMessageRead } from '../library/models.js';
 import { problemMessage } from '../ui/problem-message.js';
 
 export default {
   name: 'MessagesView',
-  components: { Bell, Check, CheckCheck, Mail, StateMessage, X },
-  data: () => ({ state: 'loading', message: '正在加载消息…', feedback: '', messages: [], selectedId: null, detailOpen: false }),
+  components: { Bell, Check, CheckCheck, Mail, StateMessage },
+  data: () => ({ state: 'loading', message: '正在加载消息…', feedback: '', messages: [], selectedId: null }),
   computed: {
     selectedMessage() { return this.messages.find((item) => item.id === this.selectedId) || this.messages[0] || null; },
     unreadCount() { return this.messages.filter((item) => !item.readAt).length; }
@@ -55,8 +54,7 @@ export default {
   },
   methods: {
     formatDate(value) { return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(new Date(value)); },
-    select(id) { Object.assign(this, openMessageDetail(id)); },
-    closeDetail() { Object.assign(this, closeMessageDetail(this)); },
+    select(id) { this.selectedId = id; },
     async read(id) {
       this.feedback = '';
       try {

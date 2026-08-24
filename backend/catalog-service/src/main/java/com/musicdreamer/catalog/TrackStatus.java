@@ -4,5 +4,6 @@ public enum TrackStatus {
     DRAFT,
     PENDING_REVIEW,
     PUBLISHED,
-    LOCKED
+    LOCKED,
+    REMOVED
 }

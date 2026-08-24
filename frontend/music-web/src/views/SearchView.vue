@@ -19,8 +19,19 @@
     <section v-else class="search-results">
       <div class="search-results-heading">
         <div><h1>搜索结果</h1><p>{{ keyword ? `“${keyword}”` : '全部歌曲' }}</p></div>
-        <span>{{ tracks.length }} 首歌曲</span>
+        <span>{{ tracks.length }} 首歌曲<span v-if="artists.length"> · {{ artists.length }} 位歌手</span></span>
       </div>
+
+      <section v-if="artists.length" class="search-artist-results" aria-labelledby="search-artists-heading">
+        <div class="section-heading"><h2 id="search-artists-heading">歌手</h2><span>进入主页</span></div>
+        <div class="artist-result-list">
+          <router-link v-for="artist in artists" :key="artist.userId" class="artist-result-card" :to="`/artists/${artist.userId}`">
+            <span class="artist-result-avatar"><Mic2 :size="19" aria-hidden="true" /></span>
+            <span><strong>{{ artist.stageName }}</strong><small>{{ artist.biography || '认证音乐人' }}</small></span>
+            <ChevronRight :size="17" aria-hidden="true" />
+          </router-link>
+        </div>
+      </section>
 
       <div v-if="tracks.length" class="search-result-layout">
         <aside class="best-match">
@@ -37,22 +48,22 @@
           <TrackRow v-for="(track, index) in tracks" :key="track.id" :track="track" :index="index" @play="selectTrack" />
         </div>
       </div>
-      <p v-else class="empty-state">暂时没有找到歌曲。</p>
+      <p v-if="!tracks.length && !artists.length" class="empty-state">暂时没有找到歌曲或歌手。</p>
     </section>
   </div>
 </template>
 <script>
-import { ArrowLeft, Search, X } from 'lucide-vue';
-import { API_PATHS, mapTrackSummary, mediaObjectUrl } from '@music-dreamer/shared';
+import { ArrowLeft, ChevronRight, Mic2, Search, X } from 'lucide-vue';
+import { mediaObjectUrl } from '@music-dreamer/shared';
 import { api } from '../api.js';
+import { loadSearchResults } from '../catalog/search.js';
 import StateMessage from '../components/StateMessage.vue';
 import TrackRow from '../components/TrackRow.vue';
-import { createLatestOnly } from '../ui/async-control.js';
 
 export default {
   name: 'SearchView',
-  components: { ArrowLeft, Search, StateMessage, TrackRow, X },
-  data: () => ({ keyword: '', sort: 'LATEST', state: 'ready', message: '', tracks: [], runLatestSearch: createLatestOnly() }),
+  components: { ArrowLeft, ChevronRight, Mic2, Search, StateMessage, TrackRow, X },
+  data: () => ({ keyword: '', sort: 'LATEST', state: 'ready', message: '', tracks: [], artists: [] }),
   computed: {
     bestMatch() { return this.tracks[0] || null; }
   },
@@ -64,16 +75,11 @@ export default {
   methods: {
     async search() {
       this.state = 'loading';
-      this.message = '';
       try {
-        const path = API_PATHS.catalog.search({ keyword: this.keyword, sort: this.sort });
-        await this.runLatestSearch(
-          () => api.get(path),
-          (result) => {
-            this.tracks = result.data.map(mapTrackSummary);
-            this.state = 'ready';
-          }
-        );
+        const result = await loadSearchResults(api, { keyword: this.keyword, sort: this.sort });
+        this.tracks = result.tracks;
+        this.artists = result.artists;
+        this.state = 'ready';
       } catch (problem) {
         this.message = problem.detail || '搜索失败，请稍后重试。';
         this.state = 'error';
@@ -82,7 +88,7 @@ export default {
     clearSearch() { this.keyword = ''; this.search(); },
     setSort(sort) { this.sort = sort; this.search(); },
     coverFor(track) { return track.coverMediaObjectId ? mediaObjectUrl(track.coverMediaObjectId) : '/assets/studio-piano.jpg'; },
-    selectTrack(track) { this.$store.dispatch('player/playTrack', track); }
+    selectTrack(track) { this.$store.dispatch('player/playTrack', { track, queue: this.tracks }); }
   }
 };
 </script>

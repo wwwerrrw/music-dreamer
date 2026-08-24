@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createLibraryApi } from '../src/library/api.js';
-import { closeMessageDetail, markMessageRead, messageState, openMessageDetail, playlistState } from '../src/library/models.js';
+import { markMessageRead, messageState, playlistState } from '../src/library/models.js';
+import { resolveTrackByName } from '../src/library/track-lookup.js';
 
 test('favorite action is UI-idempotent and uses the interaction favorite endpoint', async () => {
   const calls = [];
@@ -32,13 +33,15 @@ test('playlist adapter maps create, list, details, and track mutations', async (
   await library.playlist(3);
   await library.addTrack(3, { trackId: 8, sortOrder: 0 });
   await library.removeTrack(3, 8);
+  await library.deletePlaylist(3);
 
   assert.deepEqual(calls, [
     ['POST', '/api/interaction/playlists', { name: '清晨', description: '', visibility: 'PRIVATE' }],
     ['GET', '/api/interaction/playlists'],
     ['GET', '/api/interaction/playlists/3'],
     ['POST', '/api/interaction/playlists/3/tracks', { trackId: 8, sortOrder: 0 }],
-    ['DELETE', '/api/interaction/playlists/3/tracks/8']
+    ['DELETE', '/api/interaction/playlists/3/tracks/8'],
+    ['DELETE', '/api/interaction/playlists/3']
   ]);
 });
 
@@ -61,7 +64,13 @@ test('marking a message read updates only its read state', () => {
   ]);
 });
 
-test('mobile message selection opens a readable detail state and closing preserves selection', () => {
-  assert.deepEqual(openMessageDetail(9), { selectedId: 9, detailOpen: true });
-  assert.deepEqual(closeMessageDetail({ selectedId: 9, detailOpen: true }), { selectedId: 9, detailOpen: false });
+test('playlist track lookup requires one exact song-name match', () => {
+  const tracks = [
+    { id: 1, title: '晚风', artistStageName: '林屿' },
+    { id: 2, title: '晚风现场版', artistStageName: '白昼' }
+  ];
+
+  assert.equal(resolveTrackByName(tracks, '  晚风  ').id, 1);
+  assert.throws(() => resolveTrackByName(tracks, '不存在'), /未找到/);
+  assert.throws(() => resolveTrackByName([...tracks, { id: 3, title: '晚风' }], '晚风'), /同名/);
 });

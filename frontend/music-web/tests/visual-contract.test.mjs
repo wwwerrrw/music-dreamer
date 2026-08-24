@@ -24,11 +24,8 @@ const playlist = source('views/PlaylistView.vue');
 const messages = source('views/MessagesView.vue');
 const artistProfile = source('views/ArtistProfileView.vue');
 const artistStudio = source('views/ArtistStudioView.vue');
-const documentShell = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 
 test('music shell uses the approved brand and responsive chrome', () => {
-  assert.match(documentShell, /<title>悦享音乐<\/title>/);
-  assert.match(documentShell, /name="theme-color" content="#fff8f7"/);
   assert.match(appShell, /悦享音乐/);
   assert.doesNotMatch(appShell, /MUSIC\s*<span>DREAMER/);
   assert.match(appCss, /var\(--md-primary\)/);

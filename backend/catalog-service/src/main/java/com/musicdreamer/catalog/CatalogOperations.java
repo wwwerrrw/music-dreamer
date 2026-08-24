@@ -28,6 +28,8 @@ public interface CatalogOperations {
             Long coverMediaObjectId,
             Long lyricsMediaObjectId);
 
+    void removePublished(long singerUserId, long trackId);
+
     TrackSummary publish(long adminUserId, long trackId);
 
     TrackSummary lock(long adminUserId, long trackId);
@@ -36,7 +38,13 @@ public interface CatalogOperations {
 
     TrackSummary playable(long trackId);
 
+    TrackSummary recordPlay(long trackId);
+
     List<TrackSummary> search(String keyword, TrackSort sort);
+
+    List<ArtistSummary> searchArtists(String keyword);
+
+    List<TrackSummary> publishedByArtist(long userId);
 
     TrackPage adminTracks(TrackStatus status, int page, int size);
 

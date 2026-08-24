@@ -2,6 +2,7 @@ package com.musicdreamer.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -81,6 +82,29 @@ class CatalogControllerTest {
     }
 
     @Test
+    void activeUserCanRecordAPlaybackStart() throws Exception {
+        MockMvc mvc = mvc(new CatalogOperationsStub());
+
+        mvc.perform(post("/api/catalog/tracks/1/plays")
+                        .headers(headers(new AuthenticatedPrincipal(
+                                7L, Role.USER, AccountStatus.ACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.playCount").value(1));
+    }
+
+    @Test
+    void publicTrackDetailOnlyReturnsAPlayableTrack() throws Exception {
+        MockMvc mvc = mvc(new CatalogOperationsStub());
+
+        mvc.perform(get("/api/catalog/tracks/1")
+                        .headers(headers(new AuthenticatedPrincipal(
+                                7L, Role.USER, AccountStatus.ACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PUBLISHED"));
+    }
+
+    @Test
     void singerDraftRequestCarriesOptionalCoverAndLyricsMedia() throws Exception {
         MockMvc mvc = mvc(new CatalogOperationsStub());
 
@@ -122,6 +146,16 @@ class CatalogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coverMediaObjectId").value(211))
                 .andExpect(jsonPath("$.lyricsMediaObjectId").value(nullValue()));
+    }
+
+    @Test
+    void singerCanRemoveTheirPublishedTrack() throws Exception {
+        MockMvc mvc = mvc(new CatalogOperationsStub());
+
+        mvc.perform(delete("/api/catalog/tracks/1")
+                        .headers(headers(new AuthenticatedPrincipal(
+                                9L, Role.SINGER, AccountStatus.ACTIVE))))
+                .andExpect(status().isNoContent());
     }
 
     @Test
@@ -201,6 +235,16 @@ class CatalogControllerTest {
         public List<TrackSummary> search(String keyword, TrackSort sort) {
             return List.of(new TrackSummary(1L, 2L, "Song", 3L, 120_000L,
                     TrackStatus.PUBLISHED, 0L, null));
+        }
+
+        @Override
+        public List<ArtistSummary> searchArtists(String keyword) {
+            return List.of(new ArtistSummary(2L, "North Shore", null));
+        }
+
+        @Override
+        public List<TrackSummary> publishedByArtist(long userId) {
+            return search("", TrackSort.LATEST);
         }
 
         @Override
@@ -288,6 +332,10 @@ class CatalogControllerTest {
         }
 
         @Override
+        public void removePublished(long singerUserId, long trackId) {
+        }
+
+        @Override
         public TrackSummary publish(long adminUserId, long trackId) {
             throw new UnsupportedOperationException();
         }
@@ -304,7 +352,14 @@ class CatalogControllerTest {
 
         @Override
         public TrackSummary playable(long trackId) {
-            throw new UnsupportedOperationException();
+            return new TrackSummary(trackId, 2L, "Song", 3L, 120_000L,
+                    TrackStatus.PUBLISHED, 0L, null);
+        }
+
+        @Override
+        public TrackSummary recordPlay(long trackId) {
+            return new TrackSummary(trackId, 2L, "Song", 3L, 120_000L,
+                    TrackStatus.PUBLISHED, 1L, null);
         }
     }
 }

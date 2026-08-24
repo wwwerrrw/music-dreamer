@@ -27,12 +27,37 @@ if ($failedComponents.Count -gt 0) {
     exit 1
 }
 
-$processStates = [ordered]@{}
 $startResults = @()
 $existingState = Read-RuntimeState $manifest.StateFile
+$processStates = [ordered]@{}
+foreach ($existingProcessProperty in $existingState.Processes.PSObject.Properties) {
+    $existingProcessState = [ordered]@{}
+    foreach ($property in $existingProcessProperty.Value.PSObject.Properties) {
+        $existingProcessState[$property.Name] = $property.Value
+    }
+    $processStates[$existingProcessProperty.Name] = $existingProcessState
+}
 
 foreach ($processSpec in $manifest.Processes) {
     $existingStatus = Get-ManagedProcessStatus -ProcessSpec $processSpec -State $existingState
+    if ($existingStatus.Status -eq 'Unowned') {
+        $existingStateProperty = $existingState.Processes.PSObject.Properties[$processSpec.Name]
+        $replacementAllowed = $null -ne $existingStateProperty -and (
+            Test-RuntimeProcessReplacementAllowed `
+                -ProcessSpec $processSpec `
+                -ExistingStatus $existingStatus `
+                -RecordedState $existingStateProperty.Value)
+        if ($replacementAllowed) {
+            $existingStatus = [pscustomobject]@{
+                Name = $processSpec.Name
+                Status = 'Stopped'
+                Pid = $existingStatus.Pid
+                Owned = $false
+                ExecutablePath = $existingStatus.ExecutablePath
+                Message = 'Recorded process ownership changed and its readiness check failed; starting a replacement without stopping the reused PID.'
+            }
+        }
+    }
     if ($existingStatus.Status -eq 'Unowned') {
         $refusedResult = [pscustomobject]@{
             Name = $processSpec.Name

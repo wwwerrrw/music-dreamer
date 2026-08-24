@@ -3,7 +3,7 @@
     <header class="admin-page-header"><div><span class="admin-eyebrow">内容管理 / 歌曲审核</span><h1>待审核队列</h1><p>核对歌曲信息后执行发布或锁定。</p></div><button class="admin-icon-button" type="button" aria-label="刷新队列" title="刷新队列" @click="reload()"><RefreshCw :size="18" aria-hidden="true" /></button></header>
     <div class="admin-filter-bar">
       <el-select v-model="status" size="small" aria-label="歌曲状态" @change="reload(0)"><el-option label="待审核" value="SUBMITTED" /><el-option label="已发布" value="PUBLISHED" /><el-option label="已锁定" value="LOCKED" /><el-option label="草稿" value="DRAFT" /></el-select>
-      <label class="admin-search-input"><Search :size="17" aria-hidden="true" /><input v-model.trim="query" placeholder="筛选当前页的歌曲或歌手" aria-label="筛选当前页的歌曲或歌手"></label>
+      <label class="admin-search-input"><Search :size="17" aria-hidden="true" /><input v-model.trim="query" placeholder="搜索歌曲或歌手" aria-label="搜索歌曲或歌手"></label>
     </div>
 
     <AdminState v-if="loading" kind="loading" message="正在加载歌曲…" />

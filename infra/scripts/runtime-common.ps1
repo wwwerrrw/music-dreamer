@@ -346,6 +346,27 @@ function Test-RuntimeProcessReadiness {
     }
 }
 
+function Test-RuntimeProcessReplacementAllowed {
+    param(
+        [Parameter(Mandatory)]
+        [hashtable] $ProcessSpec,
+
+        [Parameter(Mandatory)]
+        [psobject] $ExistingStatus,
+
+        [Parameter(Mandatory)]
+        [psobject] $RecordedState
+    )
+
+    if (($ExistingStatus.Status -ne 'Unowned') `
+            -or ($RecordedState.Status -ne 'Ready') `
+            -or (-not $ProcessSpec.ContainsKey('Readiness'))) {
+        return $false
+    }
+
+    return -not (Test-RuntimeProcessReadiness $ProcessSpec.Readiness)
+}
+
 function Wait-RuntimeProcessReadiness {
     param(
         [Parameter(Mandatory)]

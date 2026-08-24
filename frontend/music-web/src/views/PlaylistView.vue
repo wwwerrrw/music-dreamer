@@ -8,9 +8,9 @@
         <div><p>我的歌单</p><h1>{{ playlist.playlist.name }}</h1><span>{{ playlist.playlist.description || '私人歌单' }} · {{ trackDetails.length }} 首歌曲</span></div>
       </header>
       <form class="playlist-add-form" @submit.prevent="add">
-        <label for="playlist-track-id">添加歌曲</label>
-        <input id="playlist-track-id" v-model.number="trackId" type="number" min="1" placeholder="输入歌曲 ID" required>
-        <button class="primary-button" type="submit"><Plus :size="18" aria-hidden="true" /><span>添加</span></button>
+        <label for="playlist-track-name">添加歌曲</label>
+        <input id="playlist-track-name" v-model.trim="trackName" type="search" autocomplete="off" placeholder="输入歌曲名称" required>
+        <button class="primary-button" type="submit" :disabled="adding"><Plus :size="18" aria-hidden="true" /><span>{{ adding ? '正在添加…' : '添加' }}</span></button>
       </form>
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
       <section class="playlist-tracks">
@@ -31,16 +31,16 @@ import StateMessage from '../components/StateMessage.vue';
 import TrackRow from '../components/TrackRow.vue';
 import { library } from '../library/client.js';
 import { problemMessage } from '../ui/problem-message.js';
+import { resolveTrackByName } from '../library/track-lookup.js';
 
 export default {
   name: 'PlaylistView',
   components: { ArrowLeft, ListMusic, Plus, StateMessage, TrackRow, Trash2 },
-  data: () => ({ state: 'loading', playlist: null, trackDetails: [], trackId: null, error: '' }),
+  data: () => ({ state: 'loading', playlist: null, trackDetails: [], trackName: '', adding: false, error: '' }),
   async mounted() { await this.load(); },
   methods: {
     async load() {
       this.state = 'loading';
-      this.error = '';
       try {
         this.playlist = await library.playlist(Number(this.$route.params.playlistId));
         this.trackDetails = await Promise.all(this.playlist.tracks.map(async (item) => mapTrackSummary((await api.get(API_PATHS.catalog.track(item.trackId))).data)));
@@ -51,17 +51,28 @@ export default {
       }
     },
     async add() {
+      if (this.adding) return;
+      this.adding = true;
       this.error = '';
       try {
-        await library.addTrack(this.playlist.playlist.id, { trackId: Number(this.trackId), sortOrder: this.playlist.tracks.length });
-        await this.load();
-        this.trackId = null;
+        const result = await api.get(API_PATHS.catalog.search({ keyword: this.trackName, sort: 'LATEST' }));
+        const track = resolveTrackByName(result.data.map(mapTrackSummary), this.trackName);
+        if (this.playlist.tracks.some((item) => item.trackId === track.id)) {
+          this.error = `《${track.title}》已在当前歌单中。`;
+          return;
+        }
+        const sortOrder = this.playlist.tracks.length;
+        await library.addTrack(this.playlist.playlist.id, { trackId: track.id, sortOrder });
+        this.playlist.tracks.push({ trackId: track.id, sortOrder });
+        this.trackDetails.push(track);
+        this.trackName = '';
       } catch (problem) {
-        this.error = problemMessage(problem);
+        this.error = problem instanceof Error ? problem.message : problemMessage(problem);
+      } finally {
+        this.adding = false;
       }
     },
     async remove(trackId) {
-      this.error = '';
       try {
         await library.removeTrack(this.playlist.playlist.id, trackId);
         await this.load();
@@ -69,7 +80,7 @@ export default {
         this.error = problemMessage(problem);
       }
     },
-    play(track) { this.$store.dispatch('player/playTrack', track); }
+    play(track) { this.$store.dispatch('player/playTrack', { track, queue: this.trackDetails }); }
   }
 };
 </script>

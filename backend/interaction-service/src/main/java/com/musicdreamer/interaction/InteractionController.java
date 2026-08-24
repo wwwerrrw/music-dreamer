@@ -79,6 +79,14 @@ public final class InteractionController {
         return interactions.playlist(requireActive(headers).userId(), playlistId);
     }
 
+    @DeleteMapping("/playlists/{playlistId}")
+    public ResponseEntity<Void> deletePlaylist(
+            @RequestHeader HttpHeaders headers,
+            @PathVariable @Positive long playlistId) {
+        interactions.deletePlaylist(requireActive(headers).userId(), playlistId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/playlists/{playlistId}/tracks")
     public ResponseEntity<Void> addTrack(
             @RequestHeader HttpHeaders headers,

@@ -11,6 +11,20 @@ test('catalog search path encodes user input and deterministic sorting', () => {
   );
 });
 
+test('catalog play path records one playback start for a positive track id', () => {
+  assert.equal(API_PATHS.catalog.play(8), '/api/catalog/tracks/8/plays');
+  assert.throws(() => API_PATHS.catalog.play(0), /positive integer/);
+});
+
+test('profile and artist discovery paths stay explicit and same-origin', () => {
+  assert.equal(API_PATHS.identity.me, '/api/identity/users/me');
+  assert.equal(
+    API_PATHS.catalog.artists({ keyword: '林 屿' }),
+    '/api/catalog/artists/search?keyword=%E6%9E%97+%E5%B1%BF'
+  );
+  assert.equal(API_PATHS.catalog.artistTracks(16), '/api/catalog/artists/16/tracks');
+});
+
 test('admin track path maps the submitted frontend state and keeps paging explicit', () => {
   assert.equal(
     API_PATHS.catalog.adminTracks({ status: 'SUBMITTED', page: 2, size: 20 }),

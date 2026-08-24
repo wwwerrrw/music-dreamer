@@ -77,6 +77,38 @@ class IdentityAdminControllerTest {
                 .andExpect(jsonPath("$.traceId").value("trace-admin-4"));
     }
 
+    @Test
+    void activeAdminPromotesARegularUserAndRevokesTheirSessions() throws Exception {
+        mvc.perform(post("/api/identity/admin/users/17/promote-singer")
+                        .headers(trustedHeaders(Role.ADMIN)))
+                .andExpect(status().isNoContent());
+
+        UserAccount promoted = users.findById(17L).orElseThrow();
+        assertThat(promoted.role()).isEqualTo(Role.SINGER);
+        assertThat(promoted.status()).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(promoted.version()).isEqualTo(1L);
+        assertThat(sessions.revokedUserId()).isEqualTo(17L);
+    }
+
+    @Test
+    void promotingAnAccountThatIsNotARegularUserReturnsConflict() throws Exception {
+        users.save(new UserAccount(
+                18L,
+                "existing-singer",
+                "existing-singer@example.test",
+                "$2a$10$secret-password-hash",
+                Role.SINGER,
+                AccountStatus.ACTIVE,
+                0L));
+
+        mvc.perform(post("/api/identity/admin/users/18/promote-singer")
+                        .headers(trustedHeaders(Role.ADMIN)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("IDENTITY_ROLE_CONFLICT"));
+
+        assertThat(users.findById(18L).orElseThrow().version()).isZero();
+    }
+
     private static org.springframework.http.HttpHeaders trustedHeaders(Role role) {
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.set(TrustedIdentityHeaders.USER_ID, "1");

@@ -28,6 +28,7 @@ export function createLibraryApi(api) {
     async createPlaylist(request) { return (await api.post(API_PATHS.interaction.playlists, request)).data; },
     async playlists() { return (await api.get(API_PATHS.interaction.playlists)).data; },
     async playlist(playlistId) { return (await api.get(`${API_PATHS.interaction.playlists}/${id(playlistId, 'playlistId')}`)).data; },
+    async deletePlaylist(playlistId) { return api.delete(`${API_PATHS.interaction.playlists}/${id(playlistId, 'playlistId')}`); },
     async addTrack(playlistId, request) { return api.post(`${API_PATHS.interaction.playlists}/${id(playlistId, 'playlistId')}/tracks`, request); },
     async removeTrack(playlistId, trackId) { return api.delete(`${API_PATHS.interaction.playlists}/${id(playlistId, 'playlistId')}/tracks/${id(trackId, 'trackId')}`); },
     async history() { return (await api.get(API_PATHS.interaction.history)).data; },

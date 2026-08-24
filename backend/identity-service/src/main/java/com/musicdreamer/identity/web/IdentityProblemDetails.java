@@ -48,6 +48,11 @@ public final class IdentityProblemDetails {
                     ApiErrorCode.IDENTITY_USER_NOT_FOUND,
                     "User was not found",
                     traceId);
+            case ROLE_CONFLICT -> ProblemDetails.create(
+                    HttpStatus.CONFLICT,
+                    ApiErrorCode.IDENTITY_ROLE_CONFLICT,
+                    "Only regular users can be promoted to singer",
+                    traceId);
             case ACTIVATION_TOKEN_INVALID -> ProblemDetails.create(
                     HttpStatus.BAD_REQUEST,
                     ApiErrorCode.IDENTITY_ACTIVATION_TOKEN_INVALID,

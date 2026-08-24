@@ -4,29 +4,6 @@ export async function confirmAction(confirmed, action) {
   return true;
 }
 
-export async function publishConfirmedMessage({ confirm, publish, payload }) {
-  try {
-    await confirm();
-  } catch (problem) {
-    if (problem === 'cancel' || problem === 'close') return null;
-    throw problem;
-  }
-  return publish(payload);
-}
-
-export function createSingleFlight() {
-  let pending = false;
-  return async (action) => {
-    if (pending) return undefined;
-    pending = true;
-    try {
-      return await action();
-    } finally {
-      pending = false;
-    }
-  };
-}
-
 export function viewState(page, value) {
   if (typeof value === 'string') return { page, kind: value };
   if (value?.status === 503) return { page, kind: 'error', code: 'RETRY' };

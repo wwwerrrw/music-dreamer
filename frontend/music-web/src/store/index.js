@@ -1,12 +1,19 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
-import { API_PATHS } from '@music-dreamer/shared';
+import { API_PATHS, mapTrackSummary } from '@music-dreamer/shared';
 import { api } from '../api.js';
 import { clearSession, loadSession } from '../auth/session.js';
 import { login as loginWorkflow } from '../auth/workflows.js';
 import { createPlayerController } from '../player/controller.js';
 import { shouldPersistHistory } from '../player/history-policy.js';
-import { createPlaybackQueue, movePlaybackQueue } from '../player/queue.js';
+import {
+  PLAYBACK_MODES,
+  adjacentTrack,
+  cyclePlaybackMode,
+  normalizePlaybackSelection,
+  trackForPlaybackEnd
+} from '../player/queue.js';
+import { mergeRecordedTrack } from '../player/play-count.js';
 
 Vue.use(Vuex);
 
@@ -35,44 +42,66 @@ export default new Vuex.Store({
     },
     player: {
       namespaced: true,
-      state: () => ({ controller: null, track: null, queue: [], queueIndex: -1, playing: false, currentTime: 0, duration: 0, volume: 1, lastWriteAt: 0 }),
+      state: () => ({ controller: null, track: null, queue: [], queueIndex: -1, playing: false, currentTime: 0, duration: 0, volume: 1, playbackMode: PLAYBACK_MODES.ORDER, lastWriteAt: 0, playCountError: '' }),
       mutations: {
         initialize(state, audio) { state.controller = createPlayerController({ audio }); state.volume = audio.volume; },
-        setTrack(state, track) { state.track = track; state.currentTime = 0; state.duration = 0; },
-        setQueue(state, queue) { state.queue = queue.tracks; state.queueIndex = queue.index; },
-        setQueueIndex(state, index) { state.queueIndex = index; },
+        setSelection(state, selection) {
+          state.track = selection.track;
+          state.queue = selection.queue;
+          state.queueIndex = selection.index;
+          state.currentTime = 0;
+          state.duration = 0;
+        },
+        mergeRecordedTrack(state, track) {
+          state.track = mergeRecordedTrack(state.queue, state.track, track);
+        },
+        setPlayCountError(state, message) { state.playCountError = message; },
         setPlaying(state, value) { state.playing = value; },
         setTime(state, value) { state.currentTime = value; },
         setDuration(state, value) { state.duration = value; },
         setVolume(state, value) { state.volume = value; },
+        cycleMode(state) { state.playbackMode = cyclePlaybackMode(state.playbackMode); },
         setLastWriteAt(state, value) { state.lastWriteAt = value; }
       },
       actions: {
-        async playTrack({ state, commit, dispatch }, track) {
+        async playTrack({ state, commit, dispatch }, payload) {
+          const selection = normalizePlaybackSelection(payload, state.queue);
+          const track = selection.track;
           if (state.track && state.track.id !== track.id) await dispatch('persistHistory', 'track-change');
-          const queueIndex = state.queue.findIndex((item) => item.id === track.id);
-          if (queueIndex < 0) commit('setQueue', createPlaybackQueue([track], track.id));
-          else commit('setQueueIndex', queueIndex);
           state.controller.load(track);
-          commit('setTrack', track);
+          commit('setSelection', selection);
           await state.controller.toggle();
+          commit('setPlayCountError', '');
+          try {
+            const recorded = await api.post(API_PATHS.catalog.play(track.id));
+            commit('mergeRecordedTrack', mapTrackSummary(recorded.data));
+          } catch (_problem) {
+            commit('setPlayCountError', '播放次数暂未同步');
+          }
         },
-        async playQueue({ commit, dispatch }, { tracks, startTrackId }) {
-          const queue = createPlaybackQueue(tracks, startTrackId);
-          if (queue.index < 0) return false;
-          commit('setQueue', queue);
-          await dispatch('playTrack', queue.tracks[queue.index]);
-          return true;
-        },
-        async moveQueue({ state, dispatch }, direction) {
-          const next = movePlaybackQueue({ tracks: state.queue, index: state.queueIndex }, direction);
-          if (!next) return false;
-          await dispatch('playTrack', next.track);
-          return true;
-        },
-        previous({ dispatch }) { return dispatch('moveQueue', -1); },
-        next({ dispatch }) { return dispatch('moveQueue', 1); },
         async toggle({ state }) { if (state.track) await state.controller.toggle(); },
+        previous({ state, dispatch }) {
+          const track = adjacentTrack(state.queue, state.queueIndex, -1);
+          if (track) return dispatch('playTrack', { track, queue: state.queue });
+          return undefined;
+        },
+        next({ state, dispatch }) {
+          const track = state.playbackMode === PLAYBACK_MODES.SHUFFLE
+            ? trackForPlaybackEnd(state.queue, state.queueIndex, state.playbackMode)
+            : adjacentTrack(state.queue, state.queueIndex, 1);
+          if (track) return dispatch('playTrack', { track, queue: state.queue });
+          return undefined;
+        },
+        cycleMode({ commit }) { commit('cycleMode'); },
+        async ended({ state, dispatch }) {
+          if (!state.track) return;
+          if (state.playbackMode === PLAYBACK_MODES.REPEAT_ONE) {
+            await state.controller.restart();
+            return;
+          }
+          const track = trackForPlaybackEnd(state.queue, state.queueIndex, state.playbackMode);
+          if (track) await dispatch('playTrack', { track, queue: state.queue });
+        },
         seek({ state, commit, dispatch }, seconds) { commit('setTime', state.controller.seek(seconds)); dispatch('persistHistory', 'seeked'); },
         setVolume({ state, commit }, value) { commit('setVolume', state.controller.setVolume(value)); },
         async persistHistory({ state, commit }, event) {

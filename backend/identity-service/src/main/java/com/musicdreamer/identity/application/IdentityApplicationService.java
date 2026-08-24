@@ -4,6 +4,7 @@ import com.musicdreamer.identity.port.PasswordVerifier;
 import com.musicdreamer.identity.port.SessionIssuer;
 import com.musicdreamer.identity.port.UserAccounts;
 import com.musicdreamer.security.AccountStatus;
+import com.musicdreamer.security.AuthenticatedPrincipal;
 import java.time.Clock;
 import java.util.Objects;
 
@@ -38,5 +39,23 @@ public final class IdentityApplicationService {
             throw new IdentityFailure(IdentityFailure.Reason.ACCOUNT_NOT_ACTIVE);
         }
         return sessions.issue(account, clock.instant());
+    }
+
+    public UserSummary currentUser(AuthenticatedPrincipal principal) {
+        if (principal == null || principal.status() != AccountStatus.ACTIVE) {
+            throw new IdentityFailure(IdentityFailure.Reason.FORBIDDEN);
+        }
+        var account = users.findById(principal.userId()).orElseThrow(() ->
+                new IdentityFailure(IdentityFailure.Reason.USER_NOT_FOUND));
+        if (account.status() != AccountStatus.ACTIVE) {
+            throw new IdentityFailure(IdentityFailure.Reason.FORBIDDEN);
+        }
+        return new UserSummary(
+                account.id(),
+                account.username(),
+                account.email(),
+                account.role(),
+                account.status(),
+                account.version());
     }
 }

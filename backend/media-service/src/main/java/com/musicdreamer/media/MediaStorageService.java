@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.transaction.annotation.Transactional;
 
 public class MediaStorageService implements MediaOperations {
 
@@ -23,7 +22,6 @@ public class MediaStorageService implements MediaOperations {
         this.validator = Objects.requireNonNull(validator, "validator");
     }
 
-    @Transactional
     public MediaObject store(long ownerUserId, String filename, String mimeType, byte[] bytes, MediaType mediaType) {
         MediaFileValidator.ValidatedFile validated = validator.validate(filename, mimeType, bytes, mediaType);
         String extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();

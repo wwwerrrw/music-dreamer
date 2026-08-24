@@ -14,14 +14,18 @@ export const API_PATHS = Object.freeze({
     activate: '/api/identity/activations',
     developmentInbox: '/api/identity/development-inbox',
     logout: '/api/identity/sessions/current',
+    me: '/api/identity/users/me',
     users: '/api/identity/admin/users'
   },
   catalog: {
     search: ({ keyword = '', sort = 'LATEST' } = {}) => `/api/catalog/tracks/search${query({ keyword, sort })}`,
+    artists: ({ keyword = '' } = {}) => `/api/catalog/artists/search${query({ keyword })}`,
     track: (trackId) => `/api/catalog/tracks/${positiveId(trackId, 'trackId')}`,
     playable: (trackId) => `/api/catalog/tracks/${positiveId(trackId, 'trackId')}/playable`,
+    play: (trackId) => `/api/catalog/tracks/${positiveId(trackId, 'trackId')}/plays`,
     adminTracks: ({ status, page = 0, size = 20 } = {}) => `/api/catalog/admin/tracks${query({ status, page, size })}`,
     artist: (userId) => `/api/catalog/artists/${positiveId(userId, 'userId')}`,
+    artistTracks: (userId) => `/api/catalog/artists/${positiveId(userId, 'userId')}/tracks`,
     artistMe: '/api/catalog/artists/me',
     drafts: '/api/catalog/tracks/drafts',
     submit: (trackId) => `/api/catalog/tracks/${positiveId(trackId, 'trackId')}/submit`,

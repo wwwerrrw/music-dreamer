@@ -6,9 +6,9 @@
         <section class="studio-section">
           <div class="form-section-heading"><span>01</span><div><h2>媒体文件</h2><p>上传音频、封面与可选歌词。</p></div></div>
           <div class="studio-upload-grid">
-            <label class="file-dropzone primary-dropzone"><UploadCloud :size="28" aria-hidden="true" /><strong>音频文件</strong><span>{{ form.audio ? form.audio.name : draft ? '沿用现有音频' : '选择音频文件' }}</span><input ref="audio" type="file" accept="audio/*" :required="!draft" :disabled="Boolean(draft)" @change="pick('audio', $event)"><small>{{ draft ? '音频保存后不可替换。' : '必填，由 Media 服务校验内容。' }}</small></label>
-            <label class="file-dropzone"><Image :size="24" aria-hidden="true" /><strong>封面图片</strong><span>{{ form.cover ? form.cover.name : draft ? '沿用现有封面，可重新选择' : '选择图片' }}</span><input ref="cover" type="file" accept="image/*" @change="pick('cover', $event)"><small>可选。</small></label>
-            <label class="file-dropzone"><FileText :size="24" aria-hidden="true" /><strong>歌词文件</strong><span>{{ form.lyrics ? form.lyrics.name : draft ? '沿用现有歌词，可重新选择' : '选择 LRC' }}</span><input ref="lyrics" type="file" accept=".lrc,text/plain" @change="pick('lyrics', $event)"><small>可选，支持 LRC。</small></label>
+            <label class="file-dropzone primary-dropzone"><UploadCloud :size="28" aria-hidden="true" /><strong>音频文件</strong><span>{{ form.audio ? form.audio.name : '选择音频文件' }}</span><input ref="audio" type="file" accept="audio/*" :required="!draft" @change="pick('audio', $event)"><small>必填，由 Media 服务校验内容。</small></label>
+            <label class="file-dropzone"><Image :size="24" aria-hidden="true" /><strong>封面图片</strong><span>{{ form.cover ? form.cover.name : '选择图片' }}</span><input type="file" accept="image/*" @change="pick('cover', $event)"><small>可选。</small></label>
+            <label class="file-dropzone"><FileText :size="24" aria-hidden="true" /><strong>歌词文件</strong><span>{{ form.lyrics ? form.lyrics.name : '选择 LRC' }}</span><input type="file" accept=".lrc,text/plain" @change="pick('lyrics', $event)"><small>可选，支持 LRC。</small></label>
           </div>
         </section>
 
@@ -27,27 +27,62 @@
       </form>
 
       <aside class="studio-aside">
-        <div class="section-heading"><h2>草稿</h2><span>{{ draft ? '1 条' : '0 条' }}</span></div>
-        <article v-if="draft" class="studio-draft-card"><span class="status-text">{{ statusLabel }}</span><h3>{{ draft.title }}</h3><p>草稿 #{{ draft.id }}</p><small>{{ form.durationSeconds }} 秒</small></article>
-        <div v-else class="studio-empty-draft"><Music2 :size="28" aria-hidden="true" /><p>保存后，当前草稿会显示在这里。</p></div>
+        <section class="studio-aside-section">
+          <div class="section-heading"><h2>草稿</h2><span>{{ draft ? '1 条' : '0 条' }}</span></div>
+          <article v-if="draft" class="studio-draft-card"><span class="status-text">{{ statusLabel }}</span><h3>{{ draft.title }}</h3><p>草稿 #{{ draft.id }}</p><small>{{ form.durationSeconds }} 秒</small></article>
+          <div v-else class="studio-empty-draft"><Music2 :size="28" aria-hidden="true" /><p>保存后，当前草稿会显示在这里。</p></div>
+        </section>
+
+        <section class="studio-aside-section studio-published-section">
+          <div class="section-heading"><h2>已发布作品</h2><span>{{ publishedTracks.length }} 首</span></div>
+          <p v-if="publishedState === 'loading'" class="studio-published-state">正在加载作品...</p>
+          <div v-else-if="publishedState === 'error'" class="studio-published-state is-error">
+            <span>{{ publishedMessage }}</span>
+            <button type="button" aria-label="重新加载已发布作品" title="重新加载" @click="loadPublishedTracks"><RefreshCw :size="15" aria-hidden="true" /></button>
+          </div>
+          <div v-else-if="publishedTracks.length" class="studio-published-list">
+            <article v-for="track in publishedTracks" :key="track.id" class="studio-published-row">
+              <div><strong :title="track.title">{{ track.title }}</strong><small>{{ track.playCount }} 次播放</small></div>
+              <button
+                class="studio-remove-track"
+                type="button"
+                :disabled="removingTrackId === track.id"
+                :aria-label="`删除歌曲${track.title}`"
+                :title="removingTrackId === track.id ? '正在删除' : '删除歌曲'"
+                @click="removePublishedTrack(track)"
+              ><LoaderCircle v-if="removingTrackId === track.id" class="spin" :size="16" aria-hidden="true" /><Trash2 v-else :size="16" aria-hidden="true" /></button>
+            </article>
+          </div>
+          <p v-else class="studio-published-state">暂时没有已发布作品。</p>
+        </section>
       </aside>
     </div>
   </div>
 </template>
 <script>
-import { ArrowRight, FileText, Image, Music2, Save, Send, UploadCloud, UserRound } from 'lucide-vue';
+import { ArrowRight, FileText, Image, LoaderCircle, Music2, RefreshCw, Save, Send, Trash2, UploadCloud, UserRound } from 'lucide-vue';
 import { artistStudio } from '../artist/client.js';
 import { draftStatusLabel, preserveStudioForm } from '../artist/studio-model.js';
-import { createSingleFlight } from '../ui/async-control.js';
 import { problemMessage } from '../ui/problem-message.js';
 
 export default {
   name: 'ArtistStudioView',
-  components: { ArrowRight, FileText, Image, Music2, Save, Send, UploadCloud, UserRound },
-  data: () => ({ form: { title: '', durationSeconds: 180, audio: null, cover: null, lyrics: null }, draft: null, submitting: false, success: false, message: '', submitOnce: createSingleFlight() }),
+  components: { ArrowRight, FileText, Image, LoaderCircle, Music2, RefreshCw, Save, Send, Trash2, UploadCloud, UserRound },
+  data: () => ({
+    form: { title: '', durationSeconds: 180, audio: null, cover: null, lyrics: null },
+    draft: null,
+    submitting: false,
+    success: false,
+    message: '',
+    publishedTracks: [],
+    publishedState: 'loading',
+    publishedMessage: '',
+    removingTrackId: null
+  }),
   computed: {
     statusLabel() { return draftStatusLabel(this.draft && this.draft.status); }
   },
+  async mounted() { await this.loadPublishedTracks(); },
   methods: {
     pick(field, event) { this.form[field] = event.target.files && event.target.files[0] ? event.target.files[0] : null; },
     payload() {
@@ -56,17 +91,8 @@ export default {
         durationMs: Math.round(Number(this.form.durationSeconds) * 1000),
         mediaObjectId: this.draft.mediaObjectId,
         coverMediaObjectId: this.draft.coverMediaObjectId ?? null,
-        lyricsMediaObjectId: this.draft.lyricsMediaObjectId ?? null,
-        audio: this.form.audio,
-        cover: this.form.cover,
-        lyrics: this.form.lyrics
+        lyricsMediaObjectId: this.draft.lyricsMediaObjectId ?? null
       };
-    },
-    clearSelectedFiles() {
-      for (const field of ['audio', 'cover', 'lyrics']) {
-        this.form[field] = null;
-        if (this.$refs[field]) this.$refs[field].value = '';
-      }
     },
     async saveDraft() {
       this.submitting = true;
@@ -74,7 +100,6 @@ export default {
       try {
         if (this.draft) this.draft = await artistStudio.updateDraft(this.draft.id, this.payload());
         else this.draft = await artistStudio.createDraft({ title: this.form.title, durationMs: Math.round(Number(this.form.durationSeconds) * 1000), audio: this.form.audio, cover: this.form.cover, lyrics: this.form.lyrics });
-        this.clearSelectedFiles();
         this.success = true;
         this.message = '草稿已保存。';
       } catch (problem) {
@@ -86,20 +111,40 @@ export default {
       }
     },
     async submitDraft() {
-      return this.submitOnce(async () => {
-        this.submitting = true;
-        this.message = '';
-        try {
-          this.draft = await artistStudio.submit(this.draft.id);
-          this.success = true;
-          this.message = '歌曲已提交审核。';
-        } catch (problem) {
-          this.success = false;
-          this.message = problemMessage(problem);
-        } finally {
-          this.submitting = false;
-        }
-      });
+      try {
+        this.draft = await artistStudio.submit(this.draft.id);
+        this.success = true;
+        this.message = '歌曲已提交审核。';
+      } catch (problem) {
+        this.success = false;
+        this.message = problemMessage(problem);
+      }
+    },
+    async loadPublishedTracks() {
+      this.publishedState = 'loading';
+      this.publishedMessage = '';
+      try {
+        this.publishedTracks = await artistStudio.publishedTracks(this.$store.state.auth.session.userId);
+        this.publishedState = 'ready';
+      } catch (problem) {
+        this.publishedState = 'error';
+        this.publishedMessage = problemMessage(problem);
+      }
+    },
+    async removePublishedTrack(track) {
+      try {
+        await this.$confirm(`确认删除歌曲“${track.title}”？删除后将无法被搜索和播放。`, '删除已发布歌曲', {
+          confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning'
+        });
+        this.removingTrackId = track.id;
+        await artistStudio.removePublished(track.id);
+        this.publishedTracks = this.publishedTracks.filter((item) => item.id !== track.id);
+        this.$message.success('歌曲已删除。');
+      } catch (problem) {
+        if (problem !== 'cancel' && problem !== 'close') this.$message.error(problemMessage(problem));
+      } finally {
+        this.removingTrackId = null;
+      }
     }
   }
 };
