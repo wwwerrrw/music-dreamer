@@ -29,6 +29,10 @@ public record UserAccount(
         return new UserAccount(id, username, email, passwordHash, role, AccountStatus.LOCKED, version + 1);
     }
 
+    public UserAccount restore() {
+        return new UserAccount(id, username, email, passwordHash, role, AccountStatus.ACTIVE, version + 1);
+    }
+
     public UserAccount promoteToSinger() {
         return new UserAccount(id, username, email, passwordHash, Role.SINGER, status, version + 1);
     }

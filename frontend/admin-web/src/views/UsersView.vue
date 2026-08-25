@@ -13,7 +13,7 @@
       <el-table-column label="角色" width="130"><template #default="scope"><span class="admin-role">{{ roleText(scope.row.role) }}</span></template></el-table-column>
       <el-table-column label="账号状态" width="130"><template #default="scope"><span class="admin-account-status" :class="scope.row.status === 'ACTIVE' ? 'is-active' : 'is-locked'">{{ statusText(scope.row.status) }}</span></template></el-table-column>
       <el-table-column label="数据版本" width="110"><template #default="scope"><span class="mono-value">v{{ scope.row.version }}</span></template></el-table-column>
-      <el-table-column label="操作" width="210" fixed="right"><template #default="scope"><div class="user-actions"><el-button v-if="scope.row.role === 'USER'" class="promote-user-button" type="text" :loading="promotingId === scope.row.id" :disabled="promotingId !== null" @click="promote(scope.row)">提升为歌手</el-button><el-button class="lock-user-button" type="text" :disabled="scope.row.status === 'LOCKED'" @click="lock(scope.row)">{{ scope.row.status === 'LOCKED' ? '已锁定' : '锁定账号' }}</el-button></div></template></el-table-column>
+      <el-table-column label="操作" width="240" fixed="right"><template #default="scope"><div class="user-actions"><el-button v-if="scope.row.role === 'USER'" class="promote-user-button" type="text" :loading="promotingId === scope.row.id" :disabled="promotingId !== null" @click="promote(scope.row)">提升为歌手</el-button><el-button v-if="scope.row.status === 'LOCKED'" class="restore-user-button" type="text" @click="restore(scope.row)">恢复账号</el-button><el-button v-else class="lock-user-button" type="text" @click="lock(scope.row)">锁定账号</el-button></div></template></el-table-column>
     </el-table>
     <p v-if="!loading && !error" class="admin-result-count">共 {{ filteredUsers.length }} 个账号</p>
   </div>
@@ -52,6 +52,14 @@ export default {
         await adminApi.lockUser(user.id);
         await this.load();
         this.$message.success('用户已锁定。');
+      } catch (problem) { if (problem !== 'cancel' && problem !== 'close') this.$message.error(adminProblemMessage(problem)); }
+    },
+    async restore(user) {
+      try {
+        await this.$confirm(`确认恢复用户“${user.username}”？`, '恢复账号', { confirmButtonText: '恢复', cancelButtonText: '取消', type: 'warning' });
+        await adminApi.restoreUser(user.id);
+        await this.load();
+        this.$message.success('用户已恢复。');
       } catch (problem) { if (problem !== 'cancel' && problem !== 'close') this.$message.error(adminProblemMessage(problem)); }
     },
     async promote(user) {

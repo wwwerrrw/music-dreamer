@@ -67,6 +67,27 @@ class IdentityAdminControllerTest {
     }
 
     @Test
+    void activeAdminCanRestoreALockedUser() throws Exception {
+        users.save(new UserAccount(
+                18L,
+                "locked-listener",
+                "locked@example.test",
+                "$2a$10$secret-password-hash",
+                Role.USER,
+                AccountStatus.LOCKED,
+                2L));
+
+        mvc.perform(post("/api/identity/admin/users/18/restore")
+                        .headers(trustedHeaders(Role.ADMIN)))
+                .andExpect(status().isNoContent());
+
+        UserAccount restored = users.findById(18L).orElseThrow();
+        assertThat(restored.status()).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(restored.version()).isEqualTo(3L);
+        assertThat(sessions.revokedUserId()).isEqualTo(18L);
+    }
+
+    @Test
     void ordinaryUserReceivesStableForbiddenProblemDetail() throws Exception {
         mvc.perform(get("/api/identity/admin/users")
                         .header("X-Request-Id", "trace-admin-4")

@@ -77,6 +77,7 @@ button { cursor: pointer; }
 .review-actions .el-button--text { color: var(--md-secondary); font-size: 11px; }
 .approve-button { border-color: var(--md-primary) !important; border-radius: var(--md-radius-round) !important; background: var(--md-primary) !important; color: #fff !important; }
 .lock-button { border-color: var(--md-line-strong) !important; border-radius: var(--md-radius-round) !important; background: transparent !important; color: var(--md-danger) !important; }
+.restore-button { border-color: var(--md-primary) !important; border-radius: var(--md-radius-round) !important; background: var(--md-primary-soft) !important; color: var(--md-primary-strong) !important; }
 .el-pagination { margin-top: 18px; text-align: right; }
 .el-pagination.is-background .el-pager li:not(.disabled).active { background: var(--md-primary); }
 .admin-state { display: flex; min-height: 260px; align-items: center; justify-content: center; gap: 10px; border: 1px solid var(--md-line); border-radius: var(--md-radius-lg); background: var(--md-surface); color: var(--md-muted); }
@@ -86,6 +87,7 @@ button { cursor: pointer; }
 .user-actions .el-button { margin: 0; font-size: 12px; }
 .promote-user-button { color: var(--md-primary-strong) !important; font-weight: 700; }
 .lock-user-button { color: var(--md-danger) !important; }
+.restore-user-button { color: var(--md-primary-strong) !important; }
 .admin-result-count { margin: 14px 0 0; color: var(--md-muted); font-size: 11px; }
 
 .review-drawer.el-drawer { background: var(--md-canvas); }
@@ -104,6 +106,7 @@ button { cursor: pointer; }
 .review-detail footer button { min-height: 42px; border-radius: var(--md-radius-round); font-weight: 800; }
 .drawer-approve { border: 1px solid var(--md-primary); background: var(--md-primary); color: #fff; }
 .drawer-lock { border: 1px solid var(--md-line-strong); background: var(--md-surface); color: var(--md-danger); }
+.drawer-restore { border: 1px solid var(--md-primary); background: var(--md-primary-soft); color: var(--md-primary-strong); }
 
 .message-publish-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: 34px; }
 .message-editor { overflow: hidden; border: 1px solid var(--md-line); border-radius: var(--md-radius-xl); background: var(--md-surface); }
