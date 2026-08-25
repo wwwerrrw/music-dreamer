@@ -159,6 +159,17 @@ class CatalogControllerTest {
     }
 
     @Test
+    void adminCanRestoreALockedTrack() throws Exception {
+        MockMvc mvc = mvc(new CatalogOperationsStub());
+
+        mvc.perform(post("/api/catalog/admin/tracks/1/restore")
+                        .headers(headers(new AuthenticatedPrincipal(
+                                1L, Role.ADMIN, AccountStatus.ACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PUBLISHED"));
+    }
+
+    @Test
     void adminCanListSubmittedTracksWithStablePagination() throws Exception {
         MockMvc mvc = mvc(new CatalogOperationsStub());
 
@@ -343,6 +354,12 @@ class CatalogControllerTest {
         @Override
         public TrackSummary lock(long adminUserId, long trackId) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public TrackSummary restore(long adminUserId, long trackId) {
+            return new TrackSummary(trackId, 2L, "Song", 3L, 120_000L,
+                    TrackStatus.PUBLISHED, 0L, null);
         }
 
         @Override

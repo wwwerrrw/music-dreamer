@@ -181,6 +181,22 @@ public class CatalogApplicationService implements CatalogOperations {
         return find(trackId);
     }
 
+    @Override
+    @Transactional
+    public TrackSummary restore(long adminUserId, long trackId) {
+        TrackSummary track = find(trackId);
+        if (track.status() != TrackStatus.LOCKED) {
+            throw new CatalogStateException("Only locked tracks can be restored");
+        }
+        int updated = jdbc.update(
+                "UPDATE tracks SET status = ?, version = version + 1 WHERE id = ? AND status = ?",
+                TrackStatus.PUBLISHED.name(), trackId, TrackStatus.LOCKED.name());
+        if (updated == 0) {
+            throw new CatalogStateException("Track state changed before it could be restored");
+        }
+        return find(trackId);
+    }
+
     public TrackSummary find(long trackId) {
         return jdbc.queryForObject(
                 "SELECT " + TRACK_COLUMNS

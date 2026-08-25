@@ -19,7 +19,7 @@
         <el-table-column label="提交时间" min-width="150"><template #default="scope"><span>{{ formatDate(scope.row.createdAt) }}</span></template></el-table-column>
         <el-table-column label="状态" width="110"><template #default="scope"><span class="admin-status" :class="`is-${scope.row.status.toLowerCase()}`">{{ statusText(scope.row.status) }}</span></template></el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
-          <template #default="scope"><div class="review-actions"><el-button type="text" @click="openDetail(scope.row)">查看详情</el-button><el-button v-if="scope.row.status === 'PENDING_REVIEW'" class="approve-button" size="mini" @click="publish(scope.row)">通过</el-button><el-button v-if="scope.row.status !== 'LOCKED'" class="lock-button" size="mini" @click="lock(scope.row)">锁定</el-button></div></template>
+          <template #default="scope"><div class="review-actions"><el-button type="text" @click="openDetail(scope.row)">查看详情</el-button><el-button v-if="scope.row.status === 'PENDING_REVIEW'" class="approve-button" size="mini" @click="publish(scope.row)">通过</el-button><el-button v-if="scope.row.status === 'LOCKED'" class="restore-button" size="mini" @click="restore(scope.row)">恢复</el-button><el-button v-else class="lock-button" size="mini" @click="lock(scope.row)">锁定</el-button></div></template>
         </el-table-column>
       </el-table>
       <el-pagination background layout="prev, pager, next" :current-page="page.page + 1" :page-size="page.size" :total="page.totalItems" @current-change="changePage" />
@@ -30,7 +30,7 @@
         <header><h2>歌曲详情</h2><button type="button" aria-label="关闭详情" title="关闭详情" @click="drawerOpen = false"><X :size="19" aria-hidden="true" /></button></header>
         <img v-if="selectedTrack.coverMediaObjectId" class="review-cover" :src="coverFor(selectedTrack)" :alt="`${selectedTrack.title} 封面`"><div v-else class="review-cover review-cover-placeholder"><Music2 :size="44" aria-hidden="true" /></div>
         <dl><div><dt>歌曲名称</dt><dd>{{ selectedTrack.title }}</dd></div><div><dt>创作者</dt><dd>{{ selectedTrack.artistStageName || `歌手 #${selectedTrack.artistUserId}` }}</dd></div><div><dt>歌曲时长</dt><dd>{{ formatDuration(selectedTrack.durationMs) }}</dd></div><div><dt>提交时间</dt><dd>{{ formatDate(selectedTrack.createdAt) }}</dd></div><div><dt>当前状态</dt><dd><span class="admin-status">{{ statusText(selectedTrack.status) }}</span></dd></div></dl>
-        <footer><button v-if="selectedTrack.status === 'PENDING_REVIEW'" class="drawer-approve" type="button" @click="publish(selectedTrack)">通过审核</button><button v-if="selectedTrack.status !== 'LOCKED'" class="drawer-lock" type="button" @click="lock(selectedTrack)">锁定歌曲</button></footer>
+        <footer><button v-if="selectedTrack.status === 'PENDING_REVIEW'" class="drawer-approve" type="button" @click="publish(selectedTrack)">通过审核</button><button v-if="selectedTrack.status === 'LOCKED'" class="drawer-restore" type="button" @click="restore(selectedTrack)">恢复歌曲</button><button v-else class="drawer-lock" type="button" @click="lock(selectedTrack)">锁定歌曲</button></footer>
       </article>
     </el-drawer>
   </div>
@@ -85,6 +85,15 @@ export default {
         this.drawerOpen = false;
         await this.reload();
         this.$message.success('歌曲已锁定。');
+      } catch (problem) { if (problem !== 'cancel' && problem !== 'close') this.$message.error(adminProblemMessage(problem)); }
+    },
+    async restore(row) {
+      try {
+        await this.$confirm(`确认恢复“${row.title}”？恢复后歌曲将重新可播放。`, '恢复歌曲', { confirmButtonText: '恢复', cancelButtonText: '取消', type: 'warning' });
+        await adminApi.restoreTrack(row.id);
+        this.drawerOpen = false;
+        await this.reload();
+        this.$message.success('歌曲已恢复。');
       } catch (problem) { if (problem !== 'cancel' && problem !== 'close') this.$message.error(adminProblemMessage(problem)); }
     }
   }

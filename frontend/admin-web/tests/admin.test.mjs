@@ -21,17 +21,21 @@ test('admin adapter maps user, track, and message operations to owned service pa
   await admin.users();
   await admin.tracks({ status: 'SUBMITTED', page: 0, size: 20 });
   await admin.lockUser(16);
+  await admin.restoreUser(16);
   await admin.promoteSinger(16);
   await admin.publishTrack(8);
   await admin.lockTrack(8);
+  await admin.restoreTrack(8);
   await admin.publishMessage({ subject: '公告', body: '内容' });
   assert.deepEqual(calls, [
     ['GET', '/api/identity/admin/users'],
     ['GET', '/api/catalog/admin/tracks?status=SUBMITTED&page=0&size=20'],
     ['POST', '/api/identity/admin/users/16/lock'],
+    ['POST', '/api/identity/admin/users/16/restore'],
     ['POST', '/api/identity/admin/users/16/promote-singer'],
     ['POST', '/api/catalog/admin/tracks/8/publish'],
     ['POST', '/api/catalog/admin/tracks/8/lock'],
+    ['POST', '/api/catalog/admin/tracks/8/restore'],
     ['POST', '/api/interaction/admin/messages', { subject: '公告', body: '内容' }]
   ]);
 });

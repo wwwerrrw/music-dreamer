@@ -34,6 +34,8 @@ public interface CatalogOperations {
 
     TrackSummary lock(long adminUserId, long trackId);
 
+    TrackSummary restore(long adminUserId, long trackId);
+
     TrackSummary find(long trackId);
 
     TrackSummary playable(long trackId);

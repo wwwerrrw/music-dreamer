@@ -7,6 +7,7 @@ public final class IdentityFailure extends RuntimeException {
     public enum Reason {
         ACCOUNT_NOT_ACTIVE,
         ACCOUNT_LOCKED,
+        ACCOUNT_NOT_LOCKED,
         INVALID_CREDENTIALS,
         SESSION_INVALID,
         REGISTRATION_CONFLICT,
