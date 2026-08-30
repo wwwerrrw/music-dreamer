@@ -38,6 +38,8 @@ public interface CatalogOperations {
 
     TrackSummary playable(long trackId);
 
+    List<TrackSummary> playableAll(List<Long> trackIds);
+
     TrackSummary recordPlay(long trackId);
 
     List<TrackSummary> search(String keyword, TrackSort sort);

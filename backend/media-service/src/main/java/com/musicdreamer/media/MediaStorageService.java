@@ -1,9 +1,13 @@
 package com.musicdreamer.media;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -92,21 +96,31 @@ public class MediaStorageService implements MediaOperations {
 
     public MediaRange read(long id, long start, long end) {
         MediaObject object = find(id);
-        try {
-            Path source = storageRoot.resolve(object.storageKey()).normalize();
-            if (!source.startsWith(storageRoot)) {
-                throw new MediaValidationException("Storage path is invalid");
-            }
-            byte[] all = Files.readAllBytes(source);
-            if (start < 0 || start >= all.length || end < start) {
+        Path source = storageRoot.resolve(object.storageKey()).normalize();
+        if (!source.startsWith(storageRoot)) {
+            throw new MediaValidationException("Storage path is invalid");
+        }
+        try (FileChannel channel = FileChannel.open(source, StandardOpenOption.READ)) {
+            long totalLength = channel.size();
+            if (start < 0 || start >= totalLength || end < start) {
                 throw new MediaRangeException("Requested range is invalid");
             }
-            long boundedEnd = Math.min(end, all.length - 1);
-            return new MediaRange(
-                    java.util.Arrays.copyOfRange(all, (int) start, (int) boundedEnd + 1),
-                    start,
-                    boundedEnd,
-                    all.length);
+            long boundedEnd = Math.min(end, totalLength - 1);
+            int length = (int) (boundedEnd - start + 1);
+            ByteBuffer buffer = ByteBuffer.allocate(length);
+            long position = start;
+            while (buffer.hasRemaining()) {
+                int read = channel.read(buffer, position);
+                if (read < 0) {
+                    break;
+                }
+                position += read;
+            }
+            buffer.flip();
+            byte[] bytes = buffer.remaining() == length
+                    ? buffer.array()
+                    : Arrays.copyOf(buffer.array(), buffer.remaining());
+            return new MediaRange(bytes, start, start + bytes.length - 1, totalLength);
         } catch (IOException failure) {
             throw new IllegalStateException("Media read failed", failure);
         }

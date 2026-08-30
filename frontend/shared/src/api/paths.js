@@ -21,6 +21,7 @@ export const API_PATHS = Object.freeze({
     search: ({ keyword = '', sort = 'LATEST' } = {}) => `/api/catalog/tracks/search${query({ keyword, sort })}`,
     artists: ({ keyword = '' } = {}) => `/api/catalog/artists/search${query({ keyword })}`,
     track: (trackId) => `/api/catalog/tracks/${positiveId(trackId, 'trackId')}`,
+    tracksBatch: (trackIds) => `/api/catalog/tracks/batch${query({ ids: trackIds.join(',') })}`,
     playable: (trackId) => `/api/catalog/tracks/${positiveId(trackId, 'trackId')}/playable`,
     play: (trackId) => `/api/catalog/tracks/${positiveId(trackId, 'trackId')}/plays`,
     adminTracks: ({ status, page = 0, size = 20 } = {}) => `/api/catalog/admin/tracks${query({ status, page, size })}`,

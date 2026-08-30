@@ -3,8 +3,12 @@ package com.musicdreamer.catalog;
 import com.musicdreamer.security.Role;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -197,6 +201,29 @@ public class CatalogApplicationService implements CatalogOperations {
             throw new CatalogStateException("Track is not available for playback");
         }
         return track;
+    }
+
+    @Override
+    public List<TrackSummary> playableAll(List<Long> trackIds) {
+        Objects.requireNonNull(trackIds, "trackIds");
+        if (trackIds.isEmpty()) {
+            return List.of();
+        }
+        String placeholders = String.join(",", Collections.nCopies(trackIds.size(), "?"));
+        Object[] args = new Object[trackIds.size() + 1];
+        args[0] = TrackStatus.PUBLISHED.name();
+        for (int index = 0; index < trackIds.size(); index++) {
+            args[index + 1] = trackIds.get(index);
+        }
+        List<TrackSummary> playable = jdbc.query(
+                "SELECT " + TRACK_COLUMNS
+                        + "FROM tracks t LEFT JOIN artist_profiles a ON a.user_id = t.artist_user_id "
+                        + "WHERE t.status = ? AND t.id IN (" + placeholders + ")",
+                trackMapper(),
+                args);
+        Map<Long, TrackSummary> byId = playable.stream()
+                .collect(Collectors.toMap(TrackSummary::id, Function.identity()));
+        return trackIds.stream().map(byId::get).filter(Objects::nonNull).toList();
     }
 
     @Override

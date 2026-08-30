@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.http.HttpHeaders;
@@ -146,6 +147,14 @@ public final class CatalogController {
         return catalog.search(keyword, sort);
     }
 
+    @GetMapping("/tracks/batch")
+    public List<TrackSummary> findBatch(
+            @RequestHeader HttpHeaders headers,
+            @RequestParam String ids) {
+        requireActive(headers);
+        return catalog.playableAll(parseTrackIds(ids));
+    }
+
     @GetMapping("/tracks/{trackId}")
     public TrackSummary find(@RequestHeader HttpHeaders headers, @PathVariable long trackId) {
         requireActive(headers);
@@ -190,6 +199,37 @@ public final class CatalogController {
         } catch (IllegalArgumentException failure) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown track status", failure);
         }
+    }
+
+    private static final int MAX_BATCH_IDS = 100;
+
+    private static List<Long> parseTrackIds(String ids) {
+        List<Long> trackIds = new ArrayList<>();
+        if (ids != null && !ids.isBlank()) {
+            String[] parts = ids.split(",", -1);
+            if (parts.length > MAX_BATCH_IDS) {
+                throw badRequest("Track ids are limited to " + MAX_BATCH_IDS + " entries");
+            }
+            for (String part : parts) {
+                try {
+                    long id = Long.parseLong(part.trim());
+                    if (id <= 0) {
+                        throw new NumberFormatException("not positive");
+                    }
+                    trackIds.add(id);
+                } catch (NumberFormatException invalid) {
+                    throw badRequest("Track ids must be positive integers");
+                }
+            }
+        }
+        if (trackIds.isEmpty()) {
+            throw badRequest("Track ids are required");
+        }
+        return trackIds;
+    }
+
+    private static ResponseStatusException badRequest(String message) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
     }
 
     public record DraftRequest(

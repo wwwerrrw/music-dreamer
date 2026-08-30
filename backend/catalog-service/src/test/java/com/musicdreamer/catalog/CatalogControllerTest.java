@@ -105,6 +105,56 @@ class CatalogControllerTest {
     }
 
     @Test
+    void batchEndpointReturnsPlayableTracksForActiveUsers() throws Exception {
+        MockMvc mvc = mvc(new CatalogOperationsStub());
+
+        mvc.perform(get("/api/catalog/tracks/batch")
+                        .headers(headers(new AuthenticatedPrincipal(
+                                7L, Role.USER, AccountStatus.ACTIVE)))
+                        .queryParam("ids", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].status").value("PUBLISHED"));
+    }
+
+    @Test
+    void batchEndpointSkipsUnplayableIdsWithoutFailing() throws Exception {
+        MockMvc mvc = mvc(new CatalogOperationsStub());
+
+        mvc.perform(get("/api/catalog/tracks/batch")
+                        .headers(headers(new AuthenticatedPrincipal(
+                                7L, Role.USER, AccountStatus.ACTIVE)))
+                        .queryParam("ids", "999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void batchEndpointRejectsInvalidOrOversizedIdLists() throws Exception {
+        MockMvc mvc = mvc(new CatalogOperationsStub());
+        HttpHeaders active = headers(new AuthenticatedPrincipal(
+                7L, Role.USER, AccountStatus.ACTIVE));
+
+        mvc.perform(get("/api/catalog/tracks/batch").headers(active).queryParam("ids", "abc"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/catalog/tracks/batch").headers(active).queryParam("ids", "0"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/catalog/tracks/batch").headers(active).queryParam("ids", "1,,2"))
+                .andExpect(status().isBadRequest());
+        String oversized = "1" + ",1".repeat(100);
+        mvc.perform(get("/api/catalog/tracks/batch").headers(active).queryParam("ids", oversized))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void batchEndpointRejectsRequestsWithoutActivePrincipal() throws Exception {
+        MockMvc mvc = mvc(new CatalogOperationsStub());
+
+        mvc.perform(get("/api/catalog/tracks/batch").queryParam("ids", "1"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void singerDraftRequestCarriesOptionalCoverAndLyricsMedia() throws Exception {
         MockMvc mvc = mvc(new CatalogOperationsStub());
 
@@ -354,6 +404,13 @@ class CatalogControllerTest {
         public TrackSummary playable(long trackId) {
             return new TrackSummary(trackId, 2L, "Song", 3L, 120_000L,
                     TrackStatus.PUBLISHED, 0L, null);
+        }
+
+        @Override
+        public List<TrackSummary> playableAll(List<Long> trackIds) {
+            TrackSummary published = new TrackSummary(1L, 2L, "Song", 3L, 120_000L,
+                    TrackStatus.PUBLISHED, 0L, null);
+            return trackIds.contains(1L) ? List.of(published) : List.of();
         }
 
         @Override

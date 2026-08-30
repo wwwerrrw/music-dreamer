@@ -195,6 +195,22 @@ class CatalogApplicationServiceTest {
     }
 
     @Test
+    void batchLookupReturnsOnlyPlayableTracksInRequestedOrder() {
+        TrackSummary first = service.createDraft(9L, "Aurora", 101L, 1L);
+        service.submit(9L, first.id());
+        service.publish(1L, first.id());
+        TrackSummary second = service.createDraft(9L, "Borealis", 102L, 1L);
+        service.submit(9L, second.id());
+        service.publish(1L, second.id());
+        TrackSummary draft = service.createDraft(9L, "Hidden Draft", 103L, 1L);
+
+        List<TrackSummary> found = service.playableAll(
+                List.of(second.id(), draft.id(), 404L, first.id()));
+
+        assertThat(found).extracting(TrackSummary::id).containsExactly(second.id(), first.id());
+    }
+
+    @Test
     void singerRemovesOwnPublishedTrackFromPublicCatalog() {
         TrackSummary draft = service.createDraft(9L, "Last Light", 101L, 1L);
         service.submit(9L, draft.id());
