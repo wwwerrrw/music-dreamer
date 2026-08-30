@@ -23,6 +23,11 @@ public final class IdentityProblemDetails {
                     ApiErrorCode.IDENTITY_ACCOUNT_LOCKED,
                     "Account is locked",
                     traceId);
+            case ACCOUNT_NOT_LOCKED -> ProblemDetails.create(
+                    HttpStatus.CONFLICT,
+                    ApiErrorCode.IDENTITY_ACCOUNT_NOT_LOCKED,
+                    "Account is not locked",
+                    traceId);
             case INVALID_CREDENTIALS -> ProblemDetails.create(
                     HttpStatus.UNAUTHORIZED,
                     ApiErrorCode.IDENTITY_INVALID_CREDENTIALS,

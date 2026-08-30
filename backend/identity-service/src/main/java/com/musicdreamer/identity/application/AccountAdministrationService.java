@@ -28,6 +28,18 @@ public class AccountAdministrationService {
     }
 
     @Transactional
+    public void restoreUser(AuthenticatedPrincipal actor, long userId) {
+        requireActiveAdmin(actor);
+        var user = users.findById(userId).orElseThrow(() ->
+                new IdentityFailure(IdentityFailure.Reason.USER_NOT_FOUND));
+        if (user.status() != com.musicdreamer.security.AccountStatus.LOCKED) {
+            throw new IdentityFailure(IdentityFailure.Reason.ACCOUNT_NOT_LOCKED);
+        }
+        users.save(user.restore());
+        sessions.revokeAllForUser(userId);
+    }
+
+    @Transactional
     public void promoteToSinger(AuthenticatedPrincipal actor, long userId) {
         requireActiveAdmin(actor);
         var user = users.findById(userId).orElseThrow(() ->

@@ -14,6 +14,6 @@ Music Dreamer 是一个面向管理员、歌手和普通用户的前后端分离
 - [主体设计](docs/superpowers/specs/2026-08-11-music-dreamer-design.md)
 - [实施计划](docs/superpowers/plans/2026-08-11-music-dreamer-implementation.md)
 
-## 当前范围
+## 包括范围
 
-主体阶段包含应用、测试和本地运行真实 SMTP 和公网部署在主体独立验收后
+主体阶段包含应用、测试和本地运行真实 SMTP 和公网部署

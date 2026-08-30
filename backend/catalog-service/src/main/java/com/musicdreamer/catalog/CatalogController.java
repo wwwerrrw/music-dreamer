@@ -93,6 +93,12 @@ public final class CatalogController {
         return catalog.lock(principal.userId(), trackId);
     }
 
+    @PostMapping("/admin/tracks/{trackId}/restore")
+    public TrackSummary restore(@RequestHeader HttpHeaders headers, @PathVariable long trackId) {
+        AuthenticatedPrincipal principal = require(headers, Role.ADMIN);
+        return catalog.restore(principal.userId(), trackId);
+    }
+
     @GetMapping("/admin/tracks")
     public TrackPage adminTracks(
             @RequestHeader HttpHeaders headers,

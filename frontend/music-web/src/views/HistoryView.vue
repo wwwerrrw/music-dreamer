@@ -16,7 +16,7 @@ import LibraryTabs from '../components/LibraryTabs.vue';
 import StateMessage from '../components/StateMessage.vue';
 import TrackRow from '../components/TrackRow.vue';
 import { library } from '../library/client.js';
-import { loadTracksForEntries } from '../library/track-batch.js';
+import { loadHistoryTracks } from '../library/history-loader.js';
 import { problemMessage } from '../ui/problem-message.js';
 
 export default {
@@ -25,8 +25,7 @@ export default {
   data: () => ({ state: 'loading', message: '正在加载播放记录…', tracks: [] }),
   async mounted() {
     try {
-      const history = await library.history();
-      this.tracks = await loadTracksForEntries(api, history);
+      this.tracks = await loadHistoryTracks({ api, library });
       this.state = 'ready';
     } catch (problem) {
       this.state = 'error';

@@ -39,6 +39,14 @@ public final class IdentityAdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{userId}/restore")
+    public ResponseEntity<Void> restoreUser(
+            @RequestHeader HttpHeaders headers,
+            @PathVariable long userId) {
+        administration.restoreUser(principal(headers), userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{userId}/promote-singer")
     public ResponseEntity<Void> promoteToSinger(
             @RequestHeader HttpHeaders headers,

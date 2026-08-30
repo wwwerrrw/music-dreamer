@@ -211,6 +211,19 @@ class CatalogApplicationServiceTest {
     }
 
     @Test
+    void adminRestoresLockedTrackToPublished() {
+        TrackSummary draft = service.createDraft(9L, "Restorable", 101L, 1L);
+        service.submit(9L, draft.id());
+        service.publish(1L, draft.id());
+        service.lock(1L, draft.id());
+
+        TrackSummary restored = service.restore(1L, draft.id());
+
+        assertThat(restored.status()).isEqualTo(TrackStatus.PUBLISHED);
+        assertThat(service.playable(draft.id()).status()).isEqualTo(TrackStatus.PUBLISHED);
+    }
+
+    @Test
     void singerRemovesOwnPublishedTrackFromPublicCatalog() {
         TrackSummary draft = service.createDraft(9L, "Last Light", 101L, 1L);
         service.submit(9L, draft.id());
