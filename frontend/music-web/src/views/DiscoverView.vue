@@ -6,16 +6,55 @@
     </header>
     <StateMessage v-if="state !== 'ready'" :state="state" :message="stateMessage" />
     <template v-else-if="heroTrack">
-      <section class="discovery-hero">
-        <img :src="coverFor(heroTrack)" :alt="`${heroTrack.title} 封面`">
-        <div class="discovery-hero-overlay" aria-hidden="true"></div>
-        <div class="discovery-hero-copy">
-          <span class="hero-label">今日新声</span>
-          <h2>{{ heroTrack.title }}</h2>
-          <p>{{ heroTrack.artistStageName }}</p>
-          <button type="button" class="hero-play" :aria-label="`播放 ${heroTrack.title}`" @click="play(heroTrack)">
-            <Play :size="23" fill="currentColor" aria-hidden="true" />
-            <span>立即收听</span>
+      <section
+        class="discovery-hero"
+        @mouseenter="pauseCarousel"
+        @mouseleave="resumeCarousel"
+        @focusin="pauseCarousel"
+        @focusout="handleHeroFocusOut"
+      >
+        <div class="discovery-hero-viewport" aria-live="polite">
+          <transition :name="heroTransition" mode="out-in">
+            <div v-if="heroTrack" :key="heroTrack.id" class="discovery-hero-slide">
+              <img :src="coverFor(heroTrack)" :alt="`${heroTrack.title} 封面`">
+              <div class="discovery-hero-overlay" aria-hidden="true"></div>
+              <div class="discovery-hero-copy">
+                <span class="hero-label">今日新声</span>
+                <h2>{{ heroTrack.title }}</h2>
+                <p>{{ heroTrack.artistStageName }}</p>
+                <button type="button" class="hero-play" :aria-label="`播放 ${heroTrack.title}`" @click="play(heroTrack)">
+                  <Play :size="23" fill="currentColor" aria-hidden="true" />
+                  <span>立即收听</span>
+                </button>
+              </div>
+            </div>
+          </transition>
+        </div>
+
+        <div class="discovery-hero-nav" aria-label="今日新声切换">
+          <div class="hero-arrow-group">
+            <button type="button" class="hero-arrow" aria-label="上一首" title="上一首" @click="previousHeroTrack">
+              <ChevronLeft :size="19" aria-hidden="true" />
+            </button>
+            <button type="button" class="hero-arrow" aria-label="下一首" title="下一首" @click="nextHeroTrack">
+              <ChevronRight :size="19" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        <div v-if="heroTracks.length > 1" class="discovery-hero-thumbs" role="tablist" aria-label="今日新声歌曲">
+          <button
+            v-for="(track, index) in heroTracks"
+            :key="track.id"
+            type="button"
+            class="hero-thumb"
+            :class="{ 'is-active': index === activeHeroIndex }"
+            role="tab"
+            :aria-selected="index === activeHeroIndex"
+            :aria-label="`切换到 ${track.title}`"
+            @click="selectHeroTrack(index)"
+          >
+            <img :src="coverFor(track)" :alt="`${track.title} 封面`">
           </button>
         </div>
       </section>
@@ -53,20 +92,30 @@
 </template>
 
 <script>
-import { ArrowRight, Play, Search } from 'lucide-vue';
+import { ArrowRight, ChevronLeft, ChevronRight, Play, Search } from 'lucide-vue';
 import { mediaObjectUrl } from '@music-dreamer/shared';
 import { api } from '../api.js';
-import { loadDiscovery } from '../catalog/discovery.js';
+import { loadDiscovery, selectHeroTracks } from '../catalog/discovery.js';
 import StateMessage from '../components/StateMessage.vue';
 import TrackRow from '../components/TrackRow.vue';
 import { problemMessage } from '../ui/problem-message.js';
 
 export default {
   name: 'DiscoverView',
-  components: { ArrowRight, Play, Search, StateMessage, TrackRow },
-  data: () => ({ state: 'loading', stateMessage: '正在加载音乐…', discovery: null }),
+  components: { ArrowRight, ChevronLeft, ChevronRight, Play, Search, StateMessage, TrackRow },
+  data: () => ({
+    state: 'loading',
+    stateMessage: '正在加载音乐…',
+    discovery: null,
+    activeHeroIndex: 0,
+    heroTransitionDirection: 'next',
+    carouselTimer: null,
+    prefersReducedMotion: false
+  }),
   computed: {
-    heroTrack() { return this.discovery && this.discovery.latest.tracks[0]; },
+    heroTracks() { return selectHeroTracks(this.discovery); },
+    heroTrack() { return this.heroTracks[this.activeHeroIndex] || null; },
+    heroTransition() { return `hero-slide-${this.heroTransitionDirection}`; },
     recommendations() { return this.discovery ? this.discovery.popular.tracks.slice(0, 4) : []; },
     rankingTracks() { return this.discovery ? this.discovery.popular.tracks.slice(0, 8) : []; },
     artistHighlights() {
@@ -76,11 +125,47 @@ export default {
     }
   },
   async mounted() {
-    try { this.discovery = await loadDiscovery(api); this.state = 'ready'; }
-    catch (problem) { this.state = 'error'; this.stateMessage = problemMessage(problem); }
+    this.prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || false;
+    try {
+      this.discovery = await loadDiscovery(api);
+      this.state = 'ready';
+      this.startCarousel();
+    } catch (problem) { this.state = 'error'; this.stateMessage = problemMessage(problem); }
+  },
+  beforeDestroy() {
+    this.stopCarousel();
   },
   methods: {
     coverFor(track) { return track.coverMediaObjectId ? mediaObjectUrl(track.coverMediaObjectId) : '/assets/studio-piano.jpg'; },
+    startCarousel() {
+      this.stopCarousel();
+      if (this.prefersReducedMotion || this.heroTracks.length < 2) return;
+      this.carouselTimer = window.setInterval(() => this.nextHeroTrack(), 6000);
+    },
+    stopCarousel() {
+      if (this.carouselTimer) window.clearInterval(this.carouselTimer);
+      this.carouselTimer = null;
+    },
+    pauseCarousel() { this.stopCarousel(); },
+    resumeCarousel() { this.startCarousel(); },
+    handleHeroFocusOut(event) {
+      if (!event.currentTarget.contains(event.relatedTarget)) this.resumeCarousel();
+    },
+    selectHeroTrack(index) {
+      if (index < 0 || index >= this.heroTracks.length || index === this.activeHeroIndex) return;
+      this.heroTransitionDirection = index > this.activeHeroIndex ? 'next' : 'prev';
+      this.activeHeroIndex = index;
+    },
+    nextHeroTrack() {
+      if (this.heroTracks.length < 2) return;
+      this.heroTransitionDirection = 'next';
+      this.activeHeroIndex = (this.activeHeroIndex + 1) % this.heroTracks.length;
+    },
+    previousHeroTrack() {
+      if (this.heroTracks.length < 2) return;
+      this.heroTransitionDirection = 'prev';
+      this.activeHeroIndex = (this.activeHeroIndex - 1 + this.heroTracks.length) % this.heroTracks.length;
+    },
     play(track) {
       const popular = this.discovery?.popular.tracks || [];
       const queue = popular.some((item) => item.id === track.id) ? popular : (this.discovery?.latest.tracks || []);
